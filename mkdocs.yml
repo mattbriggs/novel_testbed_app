@@ -53,10 +53,16 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Use the tool: use-the-testbed-app.md
-  - Software Design: software-design.md
-  - Took Walkthrough: tool-walkthrough.md
+  - How-to:
+    - Use the tool: use-the-testbed-app.md
+    - Software Design: software-design.md
+    - Took Walkthrough: tool-walkthrough.md
   - Architecture Diagrams:
       - Class Diagram: diagram-class.md
       - Package Diagram: diagram-package.md
-  - API Reference: api.md
+  - API Reference:
+    - API: api.md
+    - Core: api-core.md
+    - Inference: api-inference.md
+    - Parser: api-parser.md 
+    - Contracts: api-contracts.md
