@@ -1,0 +1,62 @@
+site_name: Novel Testbed
+site_description: A narrative compiler and test harness for fiction modules
+site_author: Matt Briggs
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: black
+      accent: deep orange
+    - scheme: slate
+      primary: black
+      accent: deep orange
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["."]
+          options:
+            show_source: false
+            show_signature: true
+            separate_signature: true
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+
+nav:
+  - Home: index.md
+  - Use the tool: use-the-testbed-app.md
+  - Software Design: software-design.md
+  - Took Walkthrough: tool-walkthrough.md
+  - Architecture Diagrams:
+      - Class Diagram: diagram-class.md
+      - Package Diagram: diagram-package.md
+  - API Reference: api.md

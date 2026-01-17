@@ -1,0 +1,155 @@
+"""
+CommonMark (Markdown) novel parser.
+
+This parser recognizes:
+- Chapters starting with:    # Chapter Title
+- Modules starting with:     ## Scene ..., ## Exposition ..., ## Transition ...
+
+Each module is converted into a Module object with:
+- type inference
+- line anchors
+- start and end text previews
+- stable module IDs
+
+This parser is intentionally strict. If headings are malformed,
+structure is lost and warnings are emitted.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import List, Optional
+
+from novel_testbed.models import Module, ModuleType, Novel
+from novel_testbed.parser.base import NovelParser
+
+logger = logging.getLogger(__name__)
+
+
+class CommonMarkNovelParser(NovelParser):
+    """
+    Parser for CommonMark-style Markdown novels.
+
+    Recognizes:
+    - # Chapter headings
+    - ## Module headings
+
+    Module type is inferred from the first word of the module title:
+    Scene, Exposition, Transition, or OTHER.
+    """
+
+    _re_chapter = re.compile(r"^#\s+(.+)$")
+    _re_module = re.compile(r"^##\s+(.+)$")
+
+    def parse(self, text: str, *, title: str) -> Novel:
+        """
+        Parse Markdown text into a structured Novel.
+
+        :param text: Raw Markdown novel text.
+        :param title: Title of the novel.
+        :return: Novel instance containing parsed modules.
+        """
+        logger.info("Parsing novel '%s'", title)
+
+        lines = text.splitlines()
+        chapter: Optional[str] = None
+        modules: List[Module] = []
+
+        cur_title: Optional[str] = None
+        cur_start: Optional[int] = None
+        buffer: List[str] = []
+
+        def flush(end_line: int) -> None:
+            """
+            Finalize the current module buffer into a Module object.
+            """
+            nonlocal cur_title, cur_start, buffer, chapter
+
+            if cur_title is None or cur_start is None or chapter is None:
+                buffer = []
+                cur_title = None
+                cur_start = None
+                return
+
+            body = "\n".join(buffer).strip("\n")
+            nonempty = [ln for ln in body.splitlines() if ln.strip()]
+
+            start_text = (nonempty[0] if nonempty else "")[:120]
+            end_text = (nonempty[-1] if nonempty else "")[:120]
+
+            first_word = cur_title.split()[0].lower() if cur_title else ""
+            if first_word == "scene":
+                mtype = ModuleType.SCENE
+            elif first_word == "exposition":
+                mtype = ModuleType.EXPOSITION
+            elif first_word == "transition":
+                mtype = ModuleType.TRANSITION
+            else:
+                mtype = ModuleType.OTHER
+
+            module_id = f"M{len(modules) + 1:03d}"
+
+            logger.debug(
+                "Creating module %s: %s (%s) lines %d–%d",
+                module_id,
+                cur_title,
+                mtype.name,
+                cur_start,
+                end_line,
+            )
+
+            modules.append(
+                Module(
+                    id=module_id,
+                    chapter=chapter,
+                    title=cur_title,
+                    module_type=mtype,
+                    start_line=cur_start,
+                    end_line=end_line,
+                    text=body,
+                    start_text=start_text,
+                    end_text=end_text,
+                )
+            )
+
+            buffer = []
+            cur_title = None
+            cur_start = None
+
+        for idx, line in enumerate(lines, start=1):
+            chapter_match = self._re_chapter.match(line)
+            module_match = self._re_module.match(line)
+
+            if chapter_match:
+                logger.debug("Chapter found at line %d: %s", idx, chapter_match.group(1))
+                flush(idx - 1)
+                chapter = chapter_match.group(1).strip()
+                continue
+
+            if module_match:
+                logger.debug("Module found at line %d: %s", idx, module_match.group(1))
+                flush(idx - 1)
+                cur_title = module_match.group(1).strip()
+                cur_start = idx + 1
+                buffer = []
+                continue
+
+            if cur_title is not None:
+                buffer.append(line)
+
+        flush(len(lines))
+
+        if not modules:
+            logger.warning(
+                "No modules parsed for novel '%s'. Check heading formatting.",
+                title,
+            )
+
+        logger.info(
+            "Parsing complete: %d modules in novel '%s'.",
+            len(modules),
+            title,
+        )
+
+        return Novel(title=title, modules=modules)
