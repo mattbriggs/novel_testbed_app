@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List, Sequence
 
 from novel_testbed.contracts.rules import (
@@ -134,18 +134,18 @@ def assess_contract(
     return reports
 
 
-def report_to_json(reports: Sequence[ModuleReport]) -> str:
+def report_to_json(reports):
     """
-    Serialize a list of ModuleReport objects to a formatted JSON string.
+    Serialize assessment reports to JSON.
 
-    :param reports: Sequence of ModuleReport objects.
-    :return: JSON string representation.
+    All Findings are converted to plain dictionaries so the output
+    is fully JSON serializable.
     """
+    def convert(report):
+        return {
+            "module_id": report.module_id,
+            "severity": report.severity,
+            "findings": [asdict(f) for f in report.findings],
+        }
 
-    def convert(obj):
-        if hasattr(obj, "__dict__"):
-            return obj.__dict__
-        return str(obj)
-
-    logger.debug("Serializing %d module reports to JSON.", len(reports))
     return json.dumps([convert(r) for r in reports], indent=2) + "\n"

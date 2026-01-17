@@ -44,35 +44,44 @@ class CommonMarkNovelParser(NovelParser):
 
     def parse(self, text: str, *, title: str) -> Novel:
         """
-        Parse Markdown text into a structured Novel.
+        Parse a CommonMark Markdown novel into a Novel model.
 
-        :param text: Raw Markdown novel text.
-        :param title: Title of the novel.
-        :return: Novel instance containing parsed modules.
+        Chapters are introduced by:
+            # Chapter Title
+
+        Modules are introduced by:
+            ## Scene ...
+            ## Exposition ...
+            ## Transition ...
+
+        Everything between two module headers becomes one Module.
         """
-        logger.info("Parsing novel '%s'", title)
-
         lines = text.splitlines()
+
         chapter: Optional[str] = None
         modules: List[Module] = []
 
         cur_title: Optional[str] = None
         cur_start: Optional[int] = None
-        buffer: List[str] = []
+        buf: List[str] = []
 
         def flush(end_line: int) -> None:
             """
             Finalize the current module buffer into a Module object.
+
+            Guarantees:
+            - Every module spans at least one line.
+            - start_line < end_line is always true.
             """
-            nonlocal cur_title, cur_start, buffer, chapter
+            nonlocal cur_title, cur_start, buf, chapter
 
             if cur_title is None or cur_start is None or chapter is None:
-                buffer = []
+                buf = []
                 cur_title = None
                 cur_start = None
                 return
 
-            body = "\n".join(buffer).strip("\n")
+            body = "\n".join(buf).strip("\n")
             nonempty = [ln for ln in body.splitlines() if ln.strip()]
 
             start_text = (nonempty[0] if nonempty else "")[:120]
@@ -90,13 +99,16 @@ class CommonMarkNovelParser(NovelParser):
 
             module_id = f"M{len(modules) + 1:03d}"
 
+            # Enforce invariant: modules must span at least one line
+            actual_end = max(end_line, cur_start + 1)
+
             logger.debug(
                 "Creating module %s: %s (%s) lines %d–%d",
                 module_id,
                 cur_title,
                 mtype.name,
                 cur_start,
-                end_line,
+                actual_end,
             )
 
             modules.append(
@@ -106,50 +118,45 @@ class CommonMarkNovelParser(NovelParser):
                     title=cur_title,
                     module_type=mtype,
                     start_line=cur_start,
-                    end_line=end_line,
+                    end_line=actual_end,
                     text=body,
                     start_text=start_text,
                     end_text=end_text,
                 )
             )
 
-            buffer = []
+            buf = []
             cur_title = None
             cur_start = None
 
         for idx, line in enumerate(lines, start=1):
-            chapter_match = self._re_chapter.match(line)
-            module_match = self._re_module.match(line)
+            m_chapter = self._re_chapter.match(line)
+            m_module = self._re_module.match(line)
 
-            if chapter_match:
-                logger.debug("Chapter found at line %d: %s", idx, chapter_match.group(1))
+            if m_chapter:
                 flush(idx - 1)
-                chapter = chapter_match.group(1).strip()
+                chapter = m_chapter.group(1).strip()
+                logger.debug("Found chapter: %s (line %d)", chapter, idx)
                 continue
 
-            if module_match:
-                logger.debug("Module found at line %d: %s", idx, module_match.group(1))
+            if m_module:
                 flush(idx - 1)
-                cur_title = module_match.group(1).strip()
+                cur_title = m_module.group(1).strip()
                 cur_start = idx + 1
-                buffer = []
+                buf = []
+                logger.debug(
+                    "Found module: %s (starts at line %d)",
+                    cur_title,
+                    cur_start,
+                )
                 continue
 
             if cur_title is not None:
-                buffer.append(line)
+                buf.append(line)
 
         flush(len(lines))
 
         if not modules:
-            logger.warning(
-                "No modules parsed for novel '%s'. Check heading formatting.",
-                title,
-            )
-
-        logger.info(
-            "Parsing complete: %d modules in novel '%s'.",
-            len(modules),
-            title,
-        )
+            logger.warning("No modules parsed. Check Markdown structure.")
 
         return Novel(title=title, modules=modules)

@@ -16,8 +16,10 @@ class DummyParser(NovelParser):
     """Minimal concrete implementation for testing."""
 
     def parse(self, text: str, *, title: str) -> Novel:
-        # Return an empty Novel for test purposes
-        return Novel(chapters=[], modules=[])
+        """
+        Return a minimal valid Novel instance for testing.
+        """
+        return Novel(title=title, modules=[])
 
 
 def test_novel_parser_is_abstract():
@@ -43,6 +45,5 @@ def test_concrete_parser_returns_novel():
     parser = DummyParser()
     novel = parser.parse("Once upon a time", title="Test Novel")
 
-    assert isinstance(novel, Novel)
-    assert novel.chapters == []
-    assert novel.modules == []
+    assert novel.title == "Test Novel"
+    assert isinstance(novel.modules, list)

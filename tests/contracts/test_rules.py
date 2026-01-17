@@ -107,11 +107,16 @@ def test_no_change_rule_passes_when_state_changes():
     assert finding is None
 
 
-def test_no_change_rule_ignores_when_state_unspecified():
+def test_no_change_rule_fails_when_state_unspecified_and_changes_declared():
+    """
+    Declaring expected_changes without specifying reader state is a contract failure.
+    """
     rule = NoChangeRule()
     contract = make_blank_contract()
     contract.expected_changes = ["power shift"]
 
     finding = rule.evaluate(contract)
 
-    assert finding is None
+    assert finding is not None
+    assert finding.severity == "FAIL"
+    assert "expected_changes declared" in finding.message

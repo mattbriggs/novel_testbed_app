@@ -123,28 +123,31 @@ class UnspecifiedStateRule:
 
 class NoChangeRule:
     """
-    Fail when expected changes are declared but reader state does not change.
-
-    This is the primary enforcement mechanism of the narrative contract.
+    Fail if expected changes are declared but:
+    - state is missing, or
+    - state exists but does not change.
     """
 
     name = "no_change"
 
-    def evaluate(self, contract: ModuleContract) -> Optional[Finding]:
-        logger.debug("Evaluating NoChangeRule for %s", contract.module_id)
-
-        if not _state_is_specified(contract):
+    def evaluate(self, c: ModuleContract) -> Optional[Finding]:
+        if not c.expected_changes:
             return None
 
-        if contract.pre_state == contract.post_state and contract.expected_changes:
-            logger.warning(
-                "Module %s declared changes but state is unchanged.",
-                contract.module_id,
-            )
+        # Promised change but gave no measurable state
+        if not _state_is_specified(c):
             return Finding(
-                rule=self.name,
-                severity="FAIL",
-                message="pre_state equals post_state but expected_changes declared.",
+                self.name,
+                "FAIL",
+                "expected_changes declared but pre_state/post_state are not specified.",
+            )
+
+        # Promised change but state did not change
+        if c.pre_state == c.post_state:
+            return Finding(
+                self.name,
+                "FAIL",
+                "pre_state equals post_state but expected_changes declared.",
             )
 
         return None
