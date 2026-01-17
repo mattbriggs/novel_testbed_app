@@ -603,15 +603,3 @@ If the diagram looks wrong, the code is wrong.
 Regenerate after every major refactor.
 
 That is the contract.
-
-
-
-This README now reflects what your system actually is:
-
-Not a writing tool.  
-Not an editor.  
-Not a stylist.
-
-A narrative compiler with static analysis and semantic inference.
-
-And that is a much more dangerous thing.
