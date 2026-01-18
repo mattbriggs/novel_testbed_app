@@ -1,19 +1,24 @@
 """
 Command-line interface for the Novel Testbed.
 
-This module provides three commands:
+This module provides four commands:
+
+- segment:
+    Segment raw Markdown into annotated Markdown with structural boundaries.
 
 - parse:
-    Parse a Markdown novel and generate a blank contract YAML.
+    Parse annotated Markdown and generate a blank contract YAML.
 
 - infer:
-    Parse a Markdown novel, infer a full narrative contract using an
-    LLM-backed inferencer, and write the populated contract YAML.
+    Segment (if needed), parse, infer a full narrative contract using an
+    LLM-backed inferencer, and write:
+        - YAML contract
+        - optional annotated Markdown
 
 - assess:
     Assess a filled contract YAML and emit a JSON report.
 
-The CLI is intentionally thin. All real logic lives in the domain modules.
+The CLI remains intentionally thin. All domain logic lives elsewhere.
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import List, Optional
 
@@ -35,6 +41,8 @@ from novel_testbed.inference.llm_client import LLMClientConfig, OpenAILLMClient
 from novel_testbed.inference.llm_inferencer import OpenAIContractInferencer
 from novel_testbed.logging_config import configure_logging
 from novel_testbed.parser.commonmark import CommonMarkNovelParser
+from novel_testbed.segmentation.segmenter import ModuleSegmenter, LLMSegmenter
+from novel_testbed.utils.source_fingerprint import build_source_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +50,6 @@ logger = logging.getLogger(__name__)
 def _require_openai_key() -> None:
     """
     Ensure that the OpenAI API key is available in the environment.
-
-    The key must be provided via the OPENAI_API_KEY environment variable.
-    It must never be passed on the command line or stored in project files.
     """
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY is not set in the environment.")
@@ -56,60 +61,139 @@ def _require_openai_key() -> None:
         )
 
 
+# -------------------------------------------------------------------------
+# segment command
+# -------------------------------------------------------------------------
+
+
+def _cmd_segment(args: argparse.Namespace) -> int:
+    """
+    Handle the `segment` subcommand.
+
+    Takes raw Markdown and produces annotated Markdown with:
+    - Chapter headings
+    - Scene / Exposition / Transition modules
+    """
+    logger.info("Running segment command on %s", args.input)
+
+    input_path = Path(args.input)
+    output_path = Path(args.output)
+
+    text = input_path.read_text(encoding="utf-8")
+
+    if args.llm:
+        _require_openai_key()
+        logger.info("Using LLM-backed segmenter.")
+        segmenter = LLMSegmenter()
+    else:
+        logger.info("Using deterministic segmenter.")
+        segmenter = ModuleSegmenter()
+
+    annotated = segmenter.segment_markdown(text, title=args.title or input_path.stem)
+    output_path.write_text(annotated, encoding="utf-8")
+
+    logger.info("Annotated Markdown written to %s", output_path)
+    return 0
+
+
+# -------------------------------------------------------------------------
+# parse command
+# -------------------------------------------------------------------------
+
+
 def _cmd_parse(args: argparse.Namespace) -> int:
     """
     Handle the `parse` subcommand.
 
-    Reads a Markdown novel, parses it into modules, and writes a blank
-    narrative contract YAML file.
-
-    :param args: Parsed argparse namespace.
-    :return: Exit status code.
+    Reads annotated Markdown, parses it into modules, and writes a blank
+    narrative contract YAML file with provenance metadata.
     """
     logger.info("Running parse command on %s", args.input)
 
-    text = Path(args.input).read_text(encoding="utf-8")
+    input_path = Path(args.input)
+    output_path = Path(args.output)
+    output_dir = output_path.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    copied_source_path = output_dir / "source.md"
+    try:
+        shutil.copy2(input_path, copied_source_path)
+        logger.info("Copied source Markdown to %s", copied_source_path)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Failed to copy source Markdown: %s", exc)
+
+    text = input_path.read_text(encoding="utf-8")
 
     parser = CommonMarkNovelParser()
-    novel = parser.parse(text, title=args.title or Path(args.input).stem)
+    novel = parser.parse(text, title=args.title or input_path.stem)
 
     contracts = contract_from_novel(novel)
-    yaml_text = dump_contract_yaml(contracts)
 
-    Path(args.output).write_text(yaml_text, encoding="utf-8")
+    try:
+        source_meta = build_source_metadata(
+            original_path=input_path,
+            copied_path=copied_source_path,
+            text=text,
+        )
+        logger.debug("Source fingerprint computed (sha256=%s...)", source_meta["sha256"][:12])
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Failed to build source metadata: %s", exc)
+        source_meta = {}
 
-    logger.info("Blank contract YAML written to %s", args.output)
+    yaml_text = dump_contract_yaml(contracts, source=source_meta)
+    output_path.write_text(yaml_text, encoding="utf-8")
+
+    logger.info("Blank contract YAML written to %s", output_path)
     return 0
+
+
+# -------------------------------------------------------------------------
+# infer command (full compiler pipeline)
+# -------------------------------------------------------------------------
 
 
 def _cmd_infer(args: argparse.Namespace) -> int:
     """
     Handle the `infer` subcommand.
 
-    Reads a Markdown novel, infers a full contract using an LLM-based
-    inferencer, and writes the populated contract YAML file.
-
-    This is the semantic front-end of the system: the novel is both parsed
-    and interpreted without manual author intervention.
-
-    :param args: Parsed argparse namespace.
-    :return: Exit status code.
+    Pipeline:
+        1. Segment Markdown (deterministic or LLM)
+        2. Parse annotated Markdown
+        3. Infer narrative contract
+        4. Write YAML contract
+        5. Optionally write annotated Markdown
     """
     logger.info("Running infer command on %s", args.input)
-
     _require_openai_key()
 
-    markdown_text = Path(args.input).read_text(encoding="utf-8")
-    title = args.title or Path(args.input).stem
+    input_path = Path(args.input)
+    markdown_text = input_path.read_text(encoding="utf-8")
+    title = args.title or input_path.stem
 
+    # --- Segmentation phase ---
+    if args.segment_llm:
+        logger.info("Segmenting using LLM.")
+        segmenter = LLMSegmenter()
+    else:
+        logger.info("Segmenting using deterministic segmenter.")
+        segmenter = ModuleSegmenter()
+
+    annotated = segmenter.segment_markdown(markdown_text, title=title)
+
+    if args.annotated:
+        annotated_path = Path(args.annotated)
+        annotated_path.write_text(annotated, encoding="utf-8")
+        logger.info("Annotated Markdown written to %s", annotated_path)
+
+    # --- Inference phase ---
     logger.debug("Initializing OpenAI LLM client with model=%s", args.model)
     client_config = LLMClientConfig(model=args.model)
     client = OpenAILLMClient(config=client_config)
     inferencer = OpenAIContractInferencer(client=client)
 
-    logger.info("Inferring narrative contract for novel: %s", title)
+    logger.info("Inferring narrative contract for '%s'", title)
     contracts = infer_contract_from_markdown(
-        markdown_text,
+        annotated,
         title=title,
         inferencer=inferencer,
     )
@@ -121,15 +205,14 @@ def _cmd_infer(args: argparse.Namespace) -> int:
     return 0
 
 
+# -------------------------------------------------------------------------
+# assess command
+# -------------------------------------------------------------------------
+
+
 def _cmd_assess(args: argparse.Namespace) -> int:
     """
     Handle the `assess` subcommand.
-
-    Reads a contract YAML file, evaluates it using assessment rules,
-    and writes a JSON report.
-
-    :param args: Parsed argparse namespace.
-    :return: Exit status code.
     """
     logger.info("Running assess command on %s", args.contract)
 
@@ -145,15 +228,18 @@ def _cmd_assess(args: argparse.Namespace) -> int:
     return 0
 
 
+# -------------------------------------------------------------------------
+# argument parser
+# -------------------------------------------------------------------------
+
+
 def build_arg_parser() -> argparse.ArgumentParser:
     """
     Build the top-level argument parser.
-
-    :return: Configured ArgumentParser instance.
     """
     parser = argparse.ArgumentParser(
         prog="novel-testbed",
-        description="Novel test harness with narrative contract inference",
+        description="Narrative compiler for fiction",
     )
     parser.add_argument(
         "--log-level",
@@ -163,64 +249,35 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="cmd", required=True)
 
+    # ---- segment ----
+    seg_cmd = subparsers.add_parser("segment", help="Segment Markdown into annotated Markdown")
+    seg_cmd.add_argument("input", help="Path to raw Markdown file")
+    seg_cmd.add_argument("-o", "--output", required=True, help="Path to annotated Markdown")
+    seg_cmd.add_argument("--title", default=None, help="Optional novel title")
+    seg_cmd.add_argument("--llm", action="store_true", help="Use LLM-backed segmentation")
+    seg_cmd.set_defaults(func=_cmd_segment)
+
     # ---- parse ----
-    parse_cmd = subparsers.add_parser(
-        "parse",
-        help="Parse Markdown and create blank contract YAML",
-    )
-    parse_cmd.add_argument("input", help="Path to Markdown novel file.")
-    parse_cmd.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Path to output YAML contract file.",
-    )
-    parse_cmd.add_argument(
-        "--title",
-        default=None,
-        help="Optional novel title override.",
-    )
+    parse_cmd = subparsers.add_parser("parse", help="Parse annotated Markdown to blank contract YAML")
+    parse_cmd.add_argument("input", help="Path to annotated Markdown")
+    parse_cmd.add_argument("-o", "--output", required=True, help="Path to output YAML")
+    parse_cmd.add_argument("--title", default=None, help="Optional novel title")
     parse_cmd.set_defaults(func=_cmd_parse)
 
     # ---- infer ----
-    infer_cmd = subparsers.add_parser(
-        "infer",
-        help="Parse Markdown, infer a full contract via LLM, and write YAML",
-    )
-    infer_cmd.add_argument("input", help="Path to Markdown novel file.")
-    infer_cmd.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Path to output YAML contract file.",
-    )
-    infer_cmd.add_argument(
-        "--title",
-        default=None,
-        help="Optional novel title override.",
-    )
-    infer_cmd.add_argument(
-        "--model",
-        default="gpt-4.1-mini",
-        help="OpenAI model to use for inference.",
-    )
+    infer_cmd = subparsers.add_parser("infer", help="Full pipeline: segment → parse → infer")
+    infer_cmd.add_argument("input", help="Path to raw Markdown")
+    infer_cmd.add_argument("-o", "--output", required=True, help="Path to output YAML")
+    infer_cmd.add_argument("--annotated", help="Optional path to write annotated Markdown")
+    infer_cmd.add_argument("--segment-llm", action="store_true", help="Use LLM for segmentation")
+    infer_cmd.add_argument("--title", default=None, help="Optional novel title")
+    infer_cmd.add_argument("--model", default="gpt-4.1-mini", help="OpenAI model for inference")
     infer_cmd.set_defaults(func=_cmd_infer)
 
     # ---- assess ----
-    assess_cmd = subparsers.add_parser(
-        "assess",
-        help="Assess a contract YAML and emit report JSON",
-    )
-    assess_cmd.add_argument(
-        "contract",
-        help="Path to YAML contract file.",
-    )
-    assess_cmd.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="Path to output JSON report file.",
-    )
+    assess_cmd = subparsers.add_parser("assess", help="Assess a contract YAML")
+    assess_cmd.add_argument("contract", help="Path to YAML contract")
+    assess_cmd.add_argument("-o", "--output", required=True, help="Path to JSON report")
     assess_cmd.set_defaults(func=_cmd_assess)
 
     return parser
@@ -229,9 +286,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     """
     Entry point for the CLI.
-
-    :param argv: Optional argument vector (used for testing).
-    :return: Exit status code.
     """
     parser = build_arg_parser()
     args = parser.parse_args(argv)

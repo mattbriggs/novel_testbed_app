@@ -5,7 +5,8 @@ These tests verify that:
 
 - Argument parsing works.
 - The `parse` command writes a blank YAML contract.
-- The `infer` command writes a populated YAML contract (stubbed, no real LLM calls).
+- The `segment` command writes annotated Markdown.
+- The `infer` command runs the full pipeline (segmentation → inference → YAML).
 - The `assess` command writes a JSON report.
 
 All LLM interaction is mocked. No network calls occur. No real API keys are used.
@@ -31,10 +32,21 @@ def make_sample_markdown(tmp_path: Path) -> Path:
     """Create a minimal Markdown novel for testing."""
     text = """
 # Chapter One
-## Scene Arrival
 She stepped onto the sand.
 """
     path = tmp_path / "novel.md"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def make_sample_annotated_markdown(tmp_path: Path) -> Path:
+    """Create already-annotated Markdown."""
+    text = """
+# Chapter One
+## Scene Arrival
+She stepped onto the sand.
+"""
+    path = tmp_path / "annotated.md"
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -59,14 +71,48 @@ def make_sample_contract(tmp_path: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# segment command
+# ---------------------------------------------------------------------------
+
+def test_cli_segment_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """
+    The `segment` command should write annotated Markdown.
+    """
+
+    novel_path = make_sample_markdown(tmp_path)
+    out_path = tmp_path / "annotated.md"
+
+    # Stub deterministic segmenter
+    class DummySegmenter:
+        def segment_markdown(self, text: str, title: str) -> str:
+            return f"# {title}\n## Scene Dummy\n{text.strip()}"
+
+    monkeypatch.setattr(cli, "ModuleSegmenter", lambda: DummySegmenter())
+
+    code = cli.main(
+        [
+            "segment",
+            str(novel_path),
+            "-o",
+            str(out_path),
+        ]
+    )
+
+    assert code == 0
+    assert out_path.exists()
+    content = out_path.read_text(encoding="utf-8")
+    assert "## Scene Dummy" in content
+
+
+# ---------------------------------------------------------------------------
 # parse command
 # ---------------------------------------------------------------------------
 
 def test_cli_parse_command(tmp_path: Path):
     """
-    The `parse` command should create a blank contract YAML from Markdown.
+    The `parse` command should create a blank contract YAML from annotated Markdown.
     """
-    novel_path = make_sample_markdown(tmp_path)
+    novel_path = make_sample_annotated_markdown(tmp_path)
     out_path = tmp_path / "contract.yaml"
 
     code = cli.main(
@@ -117,30 +163,31 @@ def test_cli_assess_command(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# infer command (fully stubbed)
+# infer command (full pipeline, fully stubbed)
 # ---------------------------------------------------------------------------
 
 def test_cli_infer_command_stubbed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """
-    The `infer` command should create a populated contract YAML.
+    The `infer` command should run the full compiler pipeline:
 
-    This test stubs out:
-    - The OpenAI API key check
-    - The LLM client
-    - The inferencer
-    - The inference pipeline
+        segment → parse → infer → YAML
 
-    So:
-    - No network calls occur
-    - Output is deterministic
-    - Only CLI wiring is tested
+    All domain behavior is stubbed.
     """
 
-    # ---- fake API key so secret validation passes ----
+    # Fake API key
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-fake-key")
 
     novel_path = make_sample_markdown(tmp_path)
     out_path = tmp_path / "inferred_contract.yaml"
+    annotated_path = tmp_path / "annotated.md"
+
+    # ---- stub segmenter ----
+    class DummySegmenter:
+        def segment_markdown(self, text: str, title: str) -> str:
+            return f"# {title}\n## Scene Arrival\nShe stepped onto the sand."
+
+    monkeypatch.setattr(cli, "ModuleSegmenter", lambda: DummySegmenter())
 
     # ---- stub infer_contract_from_markdown ----
     def fake_infer_contract_from_markdown(markdown_text, *, title, inferencer):
@@ -171,28 +218,16 @@ def test_cli_infer_command_stubbed(tmp_path: Path, monkeypatch: pytest.MonkeyPat
         fake_infer_contract_from_markdown,
     )
 
-    # ---- stub OpenAI client and inferencer constructors ----
+    # ---- stub OpenAI client and inferencer ----
     class DummyClient:
-        """Minimal stand-in for an LLM client."""
-
         pass
 
     class DummyInferencer:
-        """Minimal stand-in for a contract inferencer."""
-
         def __init__(self, client):
             self.client = client
 
-    monkeypatch.setattr(
-        cli,
-        "OpenAILLMClient",
-        lambda config=None: DummyClient(),
-    )
-    monkeypatch.setattr(
-        cli,
-        "OpenAIContractInferencer",
-        lambda client: DummyInferencer(client),
-    )
+    monkeypatch.setattr(cli, "OpenAILLMClient", lambda config=None: DummyClient())
+    monkeypatch.setattr(cli, "OpenAIContractInferencer", lambda client: DummyInferencer(client))
 
     # ---- run CLI ----
     code = cli.main(
@@ -201,6 +236,8 @@ def test_cli_infer_command_stubbed(tmp_path: Path, monkeypatch: pytest.MonkeyPat
             str(novel_path),
             "-o",
             str(out_path),
+            "--annotated",
+            str(annotated_path),
             "--model",
             "fake-model",
         ]
@@ -208,13 +245,13 @@ def test_cli_infer_command_stubbed(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     assert code == 0
     assert out_path.exists()
+    assert annotated_path.exists()
 
     data = yaml.safe_load(out_path.read_text(encoding="utf-8"))
     assert "modules" in data
     assert len(data["modules"]) == 1
 
     module = data["modules"][0]
-
     assert module["module_id"] == "M001"
     assert module["fantasy_id"] == "UF_TEST"
     assert module["expected_changes"] == ["introduce survival context"]

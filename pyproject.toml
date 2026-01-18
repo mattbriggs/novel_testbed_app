@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novel-testbed"
-version = "0.2.0"
+version = "1.0.0"
 description = "A narrative compiler and test harness for fiction modules"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -57,3 +57,6 @@ all = [
 
 [project.scripts]
 novel-testbed = "novel_testbed.cli:main"
+
+[tool.setuptools]
+packages = ["novel_testbed"]

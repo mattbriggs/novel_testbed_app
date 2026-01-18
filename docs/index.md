@@ -14,11 +14,10 @@ If it is inert, it is structural noise.
 
 This system exists to make that visible.
 
-
-
 This documentation covers:
 
-- How a novel is parsed into structural modules
+- How raw prose is segmented into structural modules
+- How annotated Markdown is parsed into executable structure
 - How reader state is modeled
 - How narrative contracts are declared
 - How contracts can be inferred automatically using an LLM
@@ -30,17 +29,41 @@ It cares if it *changes state*.
 
 
 
-## Conceptual pipeline
+## Code
+
+You can find the code in the  
+[GitHub repository](https://github.com/mattbriggs/novel_testbed_app).
+
+
+
+## Conceptual Pipeline
+
+The system is now explicitly a **four-stage compiler**:
+
+```
+Markdown → Segment → Parse → Infer → Assess
+```
+
+Where:
+
+- **Segment** adds structural joints to raw prose
+- **Parse** converts structured Markdown into executable modules
+- **Infer** builds a narrative contract (manual or LLM-driven)
+- **Assess** validates that the contract expresses real transformation
+
+In diagram form:
 
 ```mermaid
 flowchart TD
-    A[Novel Markdown] --> B[Parser]
-    B --> C1[Blank Contract YAML]
+    A[Raw Markdown] --> S[Segmentation Engine]
+    S --> B[Annotated Markdown]
+    B --> P[Parser]
+    P --> C1[Blank Contract YAML]
     C1 --> D1[Author Edits Contract]
     D1 --> E[Assessment Engine]
     E --> F[PASS / WARN / FAIL Report]
 
-    B --> C2[LLM Inference Engine]
+    P --> C2[LLM Inference Engine]
     C2 --> C3[Inferred Contract YAML]
     C3 --> E
 ```
@@ -48,13 +71,17 @@ flowchart TD
 There are two valid workflows:
 
 1. **Author-declared contract**
+   - You write or segment your prose.
+   - You parse it into modules.
    - You write the contract yourself.
-   - You explicitly state what each module is supposed to do.
    - The system checks your honesty.
 
 2. **LLM-inferred contract**
-   - The system reads your novel and infers:
-     - Reader state before and after each module
+   - You write raw prose.
+   - The system segments it.
+   - The system parses it.
+   - The system infers:
+     - Reader state before and after
      - Intended change
      - Narrative pressure
    - You review, correct, and tighten.
@@ -89,6 +116,42 @@ It is narrative mechanics.
 
 
 
+## Segmentation: Why it Exists
+
+Writers do not naturally write in compiler-friendly structure.
+
+They write in:
+
+- paragraphs
+- rhythm
+- intuition
+- flow
+
+The **segmenter** exists to bridge that gap.
+
+It takes:
+
+```
+raw prose
+```
+
+and produces:
+
+```markdown
+# Chapter
+
+## Scene
+...
+```
+
+It is the normalization phase.  
+It guarantees that the parser always receives executable structure.
+
+Segmentation is not interpretation.  
+It is structural scaffolding.
+
+
+
 ## Reader State
 
 Reader state is a model of how the reader is positioned:
@@ -111,17 +174,17 @@ It tests whether your own declared interpretation is coherent.
 
 Most novels are evaluated by:
 
-- tone
-- prestige
-- voice
-- vibes
+- tone  
+- prestige  
+- voice  
+- vibes  
 
 Novel Testbed evaluates:
 
-- structural movement
-- power dynamics
-- narrative pressure
-- declared intent vs actual effect
+- structural movement  
+- power dynamics  
+- narrative pressure  
+- declared intent vs actual effect  
 
 It does not ask if your sentences are pretty.  
 It asks if your scenes are necessary.

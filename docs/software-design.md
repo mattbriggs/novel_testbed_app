@@ -1,40 +1,16 @@
+
 # Software Design
 
-This system treats a novel as an executable structure.  
-Each scene, exposition block, or transition module is a function that transforms reader state.  
-If nothing changes, the module has failed.
-
-The purpose of this design is not literary judgment but structural accountability.
-
-A novel is not a mood object.  
-It is a dynamic system.
-
-
-
-## Goals
-
-- Parse a Markdown novel into atomic fiction modules (scene, exposition, transition).
-- Generate a contract YAML that declares narrative intent per module.
-- Support both:
-  - author-declared contracts
-  - LLM-inferred contracts (Reader Response inference).
-- Enforce explicit reader-state change through rule-based assessment.
-- Identify passages that are well written but narratively inert.
-- Provide a foundation for advanced narrative diagnostics:
-  - power dynamics
-  - genre drift
-  - threat escalation
-  - reader response activation.
-
-
+Novel Testbed is designed to treat a novel as a system that performs work. Each scene, exposition block, or transition is assumed to exist for one reason: to change the reader’s state in some measurable way. The architecture enforces this by separating structure, meaning, and evaluation into distinct, testable stages. Segmentation normalizes raw prose into explicit narrative joints. Parsing turns those joints into stable structural objects. Contracts make narrative intent explicit. Inference can automate that intent, but never replaces it. Assessment rules verify whether declared change actually occurred. An emergent property of this design is that a novel becomes observable as a dynamic system: pressure curves appear, dead zones become visible, repetition surfaces, and structural dishonesty is exposed. The system does not judge artistry. It makes narrative movement legible. The design supports this by ensuring every stage is deterministic, inspectable, and falsifiable, so that “this scene matters” becomes a claim that can be tested rather than a feeling that must be defended.
 
 ## Architecture
 
-At a high level, the system is a pipeline with two entry paths:
+At a high level, the system is a pipeline with two entry paths and one mandatory normalization stage:
 
 ```mermaid
 flowchart LR
-    A[Markdown Novel] --> B[Parser]
+    A[Markdown Novel] --> S[Segmenter]
+    S --> B[Parser]
     B --> C[Novel Model]
 
     C --> D1[Contract Generator]
@@ -50,44 +26,78 @@ flowchart LR
 
 ### Explanation
 
-1. **Parser**  
-   Reads CommonMark Markdown and identifies:
-   - Chapters
-   - Module boundaries
-   - Module types (Scene, Exposition, Transition)
-   - Text anchors (first and last non-empty lines)
+1. **Segmenter (New First Stage)**  
+   The segmenter guarantees that raw prose is converted into *structurally valid Markdown*:
 
-2. **Contract Generator**  
-   Converts parsed modules into a YAML specification that forces declaration of:
+   - Adds chapter headers if missing
+   - Adds module headers (`## Scene`, `## Exposition`, `## Transition`)
+   - Ensures idempotence if Markdown is already structured
+   - Produces canonical input for parsing
+
+   The parser never receives unstructured prose.  
+   That responsibility now belongs solely to segmentation.
+
+2. **Parser**  
+   Consumes only annotated Markdown and identifies:
+
+   - Chapters
+   - Modules
+   - Module type
+   - Text anchors
+   - Stable module IDs
+
+3. **Contract Generator**  
+   Converts parsed modules into a YAML contract that declares:
+
    - Reader pre-state
    - Reader post-state
-   - Expected narrative change
+   - Intended narrative change
 
-3. **LLM Inferencer (optional front-end)**  
-   Reads the same parsed novel and automatically:
-   - infers reader state
-   - infers expected change
-   - populates a complete contract
+4. **LLM Inferencer**  
+   Operates on parsed modules and fills the same contract automatically.
 
-4. **Assessment Engine**  
-   Applies rule objects to determine:
-   - whether declared change exists
-   - whether state transitions are coherent
-   - whether narrative pressure is actually applied
+5. **Assessment Engine**  
+   Applies rule objects to detect:
 
-This mirrors real software pipelines:
+   - Missing change
+   - Contradictory change
+   - Inert modules
+   - Structural dishonesty
+
+This now mirrors:
 
 ```
-parse → specify → validate → diagnose
+normalize → parse → specify → validate → diagnose
 ```
 
+Segmentation is normalization.
 
+---
 
-## Design Patterns
+## Design Patterns (Add Segmentation)
 
-### Strategy Pattern (Parser)
+### Strategy Pattern (Segmentation + Parsing)
 
-The parser is abstracted behind an interface so multiple input formats can coexist.
+```mermaid
+classDiagram
+    class ModuleSegmenter {
+        +segment_markdown(text: str, title: str) str
+    }
+
+    class LLMSegmenter {
+        +segment_markdown(text: str, title: str) str
+    }
+
+    ModuleSegmenter <|-- LLMSegmenter
+```
+
+This allows:
+
+- deterministic segmentation
+- optional LLM-based segmentation
+- future alternatives without touching parsing or inference
+
+And for parsing:
 
 ```mermaid
 classDiagram
@@ -102,218 +112,91 @@ classDiagram
     NovelParser <|-- CommonMarkNovelParser
 ```
 
-**Explanation**
+Segmentation and parsing are now explicitly separate responsibilities.
 
-This allows:
-- Markdown today
-- HTML tomorrow
-- Scrivener or Word exports later
+---
 
-without touching the assessment logic.
+## Updated Conceptual Pipeline
 
+Replace this:
 
-
-### Rule Object Pattern (Assessment)
-
-Each narrative constraint is a standalone rule.
-
-```mermaid
-classDiagram
-    class Rule {
-        +evaluate(contract: ModuleContract) Finding?
-    }
-
-    class NoChangeRule
-    class UnspecifiedStateRule
-    class MissingExpectedChangeRule
-
-    Rule <|-- NoChangeRule
-    Rule <|-- UnspecifiedStateRule
-    Rule <|-- MissingExpectedChangeRule
+```
+Markdown → parse → infer
 ```
 
-**Explanation**
+With this:
 
-Rules are:
-- independent
-- composable
-- explicit
-- falsifiable
-
-This prevents narrative evaluation from becoming a black box.
-
-
-
-## Class Model
-
-This diagram shows the structural heart of the system.
-
-```mermaid
-classDiagram
-    class Novel {
-        +title: str
-        +modules: List[Module]
-    }
-
-    class Module {
-        +id: str
-        +chapter: str
-        +title: str
-        +module_type: ModuleType
-        +start_text: str
-        +end_text: str
-        +text: str
-    }
-
-    class ModuleContract {
-        +module_id: str
-        +module_title: str
-        +chapter: str
-        +module_type: str
-        +fantasy_id: Optional[str]
-        +pre_state: ReaderState
-        +post_state: ReaderState
-        +expected_changes: List[str]
-        +anchors: Dict[str,str]
-    }
-
-    class ReaderState {
-        +genre: Optional[str]
-        +power_balance: Optional[str]
-        +emotional_tone: Optional[str]
-        +dominant_fantasy_id: Optional[str]
-        +threat_level: Optional[float]
-        +agency_level: Optional[float]
-    }
-
-    Novel --> Module
-    Module --> ModuleContract
-    ModuleContract --> ReaderState
+```
+Markdown → segment → parse → infer
 ```
 
+And for CLI:
 
+| Command | Pipeline |
+|------|--------|
+| `segment` | Markdown → Segmented Markdown |
+| `parse` | Markdown → Segment → Parse → Blank Contract |
+| `infer` | Markdown → Segment → Parse → Infer → Contract (+ optional annotated Markdown) |
+| `assess` | Contract → Rules → Report |
 
-## Explanation of the Data Model
+---
 
-### Module
-
-A `Module` is the atomic unit of narrative execution.  
-It contains:
-
-- structural position
-- textual boundaries
-- no interpretation
-
-It is raw input.
-
-
-
-### ReaderState (Reader Response)
-
-`ReaderState` models reader perception:
-
-| Field | Meaning |
-|------|-------|
-| genre | What story type the reader thinks this is |
-| power_balance | Who controls outcomes |
-| emotional_tone | Fear, control, unease, safety, hope |
-| threat_level | How dangerous the world feels |
-| agency_level | How capable the protagonist feels |
-
-This is Reader Response expressed as data.
-
-
-
-### ModuleContract
-
-A `ModuleContract` is a narrative promise:
-
-> “After this passage, the reader will not be the same.”
-
-If the data says they are the same, the passage failed structurally.
-
-
-
-## Narrative Contract Pipeline
+## Updated Narrative Contract Pipeline
 
 ### Author-declared workflow
 
 ```mermaid
 sequenceDiagram
     participant Author
+    participant Segmenter
     participant Parser
     participant ContractGen
     participant Assessor
 
-    Author->>Parser: Write Markdown novel
+    Author->>Segmenter: Raw or structured Markdown
+    Segmenter->>Parser: Annotated Markdown
     Parser->>ContractGen: Parsed Modules
     ContractGen->>Author: Blank Contract YAML
     Author->>Assessor: Filled Contract YAML
     Assessor->>Author: PASS/WARN/FAIL Report
 ```
 
-
-
 ### LLM-inferred workflow
 
 ```mermaid
 sequenceDiagram
     participant Author
+    participant Segmenter
     participant Parser
     participant Inferencer
     participant Assessor
 
-    Author->>Parser: Write Markdown novel
+    Author->>Segmenter: Raw Markdown
+    Segmenter->>Parser: Annotated Markdown
     Parser->>Inferencer: Parsed Modules
     Inferencer->>Author: Inferred Contract YAML
     Author->>Assessor: Review & Assess
     Assessor->>Author: PASS/WARN/FAIL Report
 ```
 
+---
 
+## Design Correction Summary
 
-## Extensibility
+What changed structurally:
 
-This system is intentionally incomplete.
+| Before | Now |
+|------|----|
+Parser accepted raw prose | Parser only accepts structured Markdown |
+Segmentation was implicit | Segmentation is explicit and testable |
+Markdown validity was optional | Markdown validity is guaranteed |
+Infer operated on raw input | Infer operates on normalized structure |
+CLI was parse-first | CLI is segment-first |
 
-Future expansions include:
+This makes the system *deterministic*, *composable*, and *auditable*.
 
-- richer ReaderState fields:
-  - captivity pressure
-  - suspicion
-  - trust erosion
-  - moral collapse
-- Reader Response classification:
-  - desire
-  - risk
-  - inevitability
-- Compression detection:
-  - warn if consecutive modules produce identical state transitions
-- Genre coherence rules:
-  - survival → captivity → dominance
-  - thriller → psychological entrapment → submission
+You now have a true compiler pipeline:
 
-
-
-## Philosophy
-
-Most narrative critique is impressionistic.  
-This system is adversarial.
-
-It assumes:
-
-- the novel is a machine
-- scenes are functions
-- meaning is output
-- intention must be provable
-
-It does not ask:
-
-> “Is this beautiful?”
-
-It asks:
-
-> “Did this change anything?”
-
-And if the answer is “no,”  
-the module is dead code.
+```
+Source → Normalization → Syntax → Semantics → Verification
+```

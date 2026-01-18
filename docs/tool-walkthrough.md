@@ -1,14 +1,12 @@
 # Step-by-step workflow for a writer using Novel Testbed
 
-This is the “you can run commands, but you don’t want to think like a programmer” version.
+This is a step-by-step guide for writers who want to use the tool without thinking like a programmer. It focuses only on what you need to do and why you are doing it, so you can concentrate on improving your writing rather than on technical details.
 
-
-
-## 1) Put your draft in Markdown
+## 1) Put your draft in Markdown (raw is fine)
 
 Create a file like `novel.md`.
 
-Use this structure:
+You *can* write it already structured:
 
 ```markdown
 # Chapter One
@@ -25,38 +23,74 @@ Rules:
 - `##` = a unit you want to evaluate (scene/exposition/transition)
 - Everything under a `##` belongs to that module until the next `##`
 
-This is just making your “joints” visible.
+But you **don’t have to**. If your draft is raw prose with no headings, the tool can now create structure for you.
 
 
 
-## 2) Parse the book into modules (structure only)
+## 2) (New) Segment the draft into parseable modules
+
+Segmentation is the new first stage. It inserts `#` and `##` markers so the parser can do its job.
 
 Run:
+
+```bash
+novel-testbed segment novel.md -o annotated.md
+```
+
+What you get:
+- `annotated.md` that contains explicit `# Chapter` and `## Scene/Exposition/Transition`
+- Your original prose preserved, just wrapped in joints
+
+This is the simplest way to see “what the tool thinks your modules are.”  
+If you hate the boundaries, fix them here. You’re allowed.
+
+
+
+## 3) Parse the book into a blank contract (structure only)
+
+Now you have two options:
+
+### Option A: parse your original (if it’s already structured)
 
 ```bash
 novel-testbed parse novel.md -o contract.yaml
 ```
 
-You just created your **contract file**.  
-It’s a table of contents plus placeholders for “what this module does to the reader.”
+### Option B: parse the annotated Markdown (recommended if you used `segment`)
 
-At this point nothing is evaluated yet. You just generated the worksheet.
+```bash
+novel-testbed parse annotated.md -o contract.yaml
+```
+
+Either way, you just created your **contract file**: a worksheet for what each module does to the reader.
+
+At this point nothing is evaluated yet. You just generated the template.
 
 
 
-## 3) Choose your approach: manual contract or LLM-assisted contract
+## 4) Choose your approach: manual contract or LLM-assisted contract
 
 ### Option A: Manual (slow, precise)
 You fill in `contract.yaml` yourself.
 
 ### Option B: Inferred (fast, surprisingly useful)
-Let the tool create a first-pass contract:
+Let the tool create a first-pass contract.
+
+**If your input is already structured Markdown:**
 
 ```bash
 novel-testbed infer novel.md -o contract.yaml
 ```
 
-This attempts to infer:
+**If your input might be raw prose, or you want the annotated output saved:**
+
+```bash
+novel-testbed infer novel.md \
+  --annotated annotated.md \
+  -o contract.yaml
+```
+
+What inference attempts to infer:
 - reader emotional tone
 - threat level and agency level
 - power balance
@@ -67,7 +101,7 @@ Treat this like notes from a blunt first reader, not divine truth.
 
 
 
-## 4) Read the contract module-by-module
+## 5) Read the contract module-by-module
 
 Open `contract.yaml`. For each module, look at:
 
@@ -84,7 +118,7 @@ If the contract is right but embarrassing, fix the scene.
 
 
 
-## 5) Make the reader-state fields feel natural
+## 6) Make the reader-state fields feel natural
 
 Don’t overthink it. Use plain language.
 
@@ -117,7 +151,7 @@ You’re not doing math. You’re recording pressure.
 
 
 
-## 6) Run an assessment pass
+## 7) Run an assessment pass
 
 ```bash
 novel-testbed assess contract.yaml -o report.json
@@ -129,7 +163,7 @@ This produces a report with:
 
 
 
-## 7) Interpret failures like a revision assistant, not a verdict
+## 8) Interpret failures like a revision assistant, not a verdict
 
 A typical FAIL means:
 
@@ -147,7 +181,7 @@ That usually points to one of these issues:
 
 
 
-## 8) Revise with a clear target
+## 9) Revise with a clear target
 
 Pick one failing or warning module. Then choose *one* fix:
 
@@ -164,7 +198,7 @@ Then update either:
 
 
 
-## 9) Re-run the loop
+## 10) Re-run the loop
 
 After changes:
 
@@ -181,7 +215,7 @@ This is iterative revision, just with receipts.
 
 
 
-## 10) Use it as a map of the whole book
+## 11) Use it as a map of the whole book
 
 Once the contract is decent, it becomes a high-level lens:
 
@@ -190,13 +224,14 @@ Once the contract is decent, it becomes a high-level lens:
 - Where does power flip?
 - Where does the book stall?
 
-This is the part that feels like having x-ray vision.
+This is the part that feels like having x-ray vision, minus the radiation lawsuit.
 
 
 
 ## Suggested routine (simple and realistic)
 
-- Run `infer` once to get a starting contract.
+- If your draft is raw prose: run `segment` once and keep `annotated.md` as your “structured draft.”
+- Run `infer` once to get a starting contract (and save annotated output with `--annotated`).
 - Fix the contract until it matches your intent.
 - Run `assess` after each revision session.
 - Focus only on FAILs first.

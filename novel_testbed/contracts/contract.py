@@ -69,19 +69,33 @@ def contract_from_novel(novel: Novel) -> List[ModuleContract]:
     return contracts
 
 
-def dump_contract_yaml(contracts: List[ModuleContract]) -> str:
+def dump_contract_yaml(
+    contracts: List[ModuleContract],
+    *,
+    source: dict | None = None,
+) -> str:
     """
     Serialize a list of ModuleContract objects to YAML.
 
     The YAML output is the canonical external representation of a narrative
     contract. It is both human-editable and machine-consumable.
 
+    Optionally embeds source provenance metadata so that:
+    - The exact Markdown input can be identified
+    - Contract drift can be detected
+    - Reproducibility is preserved
+
     :param contracts: List of ModuleContract entries.
+    :param source: Optional source metadata dictionary (fingerprint, paths, timestamps).
     :return: YAML string.
     """
     logger.debug("Serializing %d contracts to YAML.", len(contracts))
 
-    payload = {"modules": [asdict(contract) for contract in contracts]}
+    payload = {
+        "source": source or {},
+        "modules": [asdict(contract) for contract in contracts],
+    }
+
     text = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
 
     logger.debug("YAML serialization complete (%d characters).", len(text))
