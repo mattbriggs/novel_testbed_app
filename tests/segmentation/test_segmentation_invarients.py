@@ -7,11 +7,10 @@ annotated Markdown that the parser can understand.
 These tests verify that:
 
 1. Raw prose becomes segmented Markdown.
-2. Already-segmented Markdown is left unchanged.
-3. Segmented Markdown can be parsed into modules.
+2. Already-valid Markdown is preserved (with normalization allowed).
+3. Structural ordering is enforced.
+4. Segmented Markdown can be parsed into modules.
 """
-
-from pathlib import Path
 
 from novel_testbed.segmentation.segmenter import ModuleSegmenter
 from novel_testbed.parser.commonmark import CommonMarkNovelParser
@@ -37,18 +36,22 @@ def test_segmentation_basic():
 
     # Must create at least one module
     assert "##" in result
-    assert "## Scene" in result or "## Exposition" in result or "## Transition" in result
+    assert any(
+        marker in result
+        for marker in ("## Scene", "## Exposition", "## Transition")
+    )
 
 
 # ---------------------------------------------------------------------------
-# 2. Idempotence
+# 2. Idempotence / normalization
 # ---------------------------------------------------------------------------
 
 def test_segmentation_idempotent():
     """
-    Already-annotated Markdown must be returned unchanged.
+    Already-annotated Markdown must be preserved.
 
-    The segmenter must never damage author-defined structure.
+    The segmenter may normalize whitespace or ensure a trailing newline,
+    but it must not destroy or restructure valid author-defined content.
     """
     annotated = """
 # Test Novel
@@ -60,12 +63,33 @@ She stepped onto the sand.
     segmenter = ModuleSegmenter()
     result = segmenter.segment_markdown(annotated, title="Test Novel")
 
-    # Whitespace normalization is fine, content must remain equivalent
+    # Normalize both sides for semantic equivalence
     assert result.strip() == annotated.strip()
 
 
 # ---------------------------------------------------------------------------
-# 3. Round-trip integration: Segment → Parse → Modules
+# 3. Structural ordering
+# ---------------------------------------------------------------------------
+
+def test_segmentation_enforces_correct_order():
+    """
+    Chapter headers must always appear before module headers.
+
+    This protects the parser from malformed Markdown.
+    """
+    raw = "Raw prose with no structure."
+
+    segmenter = ModuleSegmenter()
+    result = segmenter.segment_markdown(raw, title="Order Test")
+
+    chapter_index = result.index("#")
+    scene_index = result.index("##")
+
+    assert chapter_index < scene_index
+
+
+# ---------------------------------------------------------------------------
+# 4. Round-trip integration: Segment → Parse → Modules
 # ---------------------------------------------------------------------------
 
 def test_segmentation_roundtrip():

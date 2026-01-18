@@ -1,16 +1,15 @@
 """
-Tests for the Markdown → Segment → Parse → Infer orchestration pipeline.
+Tests for the Annotated Markdown → Parse → Infer orchestration pipeline.
 
 These tests validate that `infer_contract_from_markdown` behaves purely as an
-orchestrator. It must:
+*semantic* front-end. It must:
 
-1. Call the segmenter.
-2. Pass segmented Markdown to the parser.
-3. Pass parsed modules to the inferencer.
-4. Return contracts.
-5. Optionally return annotated Markdown.
+1. Pass annotated Markdown directly to the parser.
+2. Pass parsed modules to the inferencer.
+3. Return inferred ModuleContract objects.
+4. Emit a warning if no modules are parsed.
 
-No semantic logic lives here. No real LLMs. No real parsing. Everything is stubbed.
+Segmentation is explicitly out of scope for this function.
 """
 
 from __future__ import annotations
@@ -27,46 +26,46 @@ from novel_testbed.models import Module, ModuleContract, ModuleType
 # Stubs
 # ---------------------------------------------------------------------------
 
-class DummySegmenter:
-    """Fake segmenter that marks text as segmented."""
-
-    def segment_markdown(self, text: str, title: str) -> str:
-        return f"# {title}\n\n## Scene 1\n{text}"
-
-
 class DummyParser:
-    """Fake parser that always returns a single module."""
-
-    def __init__(self):
-        self.last_text = None
+    """Fake parser that always returns a novel with one module."""
 
     def parse(self, text: str, *, title: str):
-        self.last_text = text
-        return DummyNovel(title=title)
+        return DummyNovel(title)
+
+
+class DummyEmptyParser:
+    """Fake parser that returns no modules (simulates malformed Markdown)."""
+
+    def parse(self, text: str, *, title: str):
+        return DummyNovel(title, modules=[])
 
 
 class DummyNovel:
-    """Fake Novel object with one module."""
+    """Fake Novel object."""
 
-    def __init__(self, title: str):
+    def __init__(self, title: str, modules: List[Module] | None = None):
         self.title = title
-        self.modules = [
-            Module(
-                id="M001",
-                chapter="Test Chapter",
-                title="Scene 1",
-                module_type=ModuleType.SCENE,
-                start_line=1,
-                end_line=2,
-                text="Fake module text",
-                start_text="Fake",
-                end_text="text",
-            )
-        ]
+
+        if modules is None:
+            self.modules = [
+                Module(
+                    id="M001",
+                    chapter="Chapter One",
+                    title="Scene 1",
+                    module_type=ModuleType.SCENE,
+                    start_line=1,
+                    end_line=2,
+                    text="Fake module text",
+                    start_text="Fake",
+                    end_text="text",
+                )
+            ]
+        else:
+            self.modules = modules
 
 
 class DummyInferencer:
-    """Fake inferencer that converts modules into contracts deterministically."""
+    """Fake inferencer that deterministically creates ModuleContracts."""
 
     def infer(self, modules: List[Module], *, novel_title: str):
         return [
@@ -88,22 +87,31 @@ class DummyInferencer:
 # Tests
 # ---------------------------------------------------------------------------
 
-def test_infer_pipeline_basic():
+def test_infer_pipeline_basic(monkeypatch):
     """
     The pipeline must:
-    - segment
-    - parse
-    - infer
-    - return contracts
+    - parse annotated Markdown
+    - infer contracts
+    - return ModuleContract objects
     """
-    raw = "She stepped onto the sand."
-    title = "Test Novel"
+    from novel_testbed.inference import auto_contract
+
+    monkeypatch.setattr(
+        auto_contract,
+        "CommonMarkNovelParser",
+        lambda: DummyParser(),
+    )
+
+    annotated = """
+# Chapter One
+## Scene 1
+She stepped onto the sand.
+"""
 
     contracts = infer_contract_from_markdown(
-        raw,
-        title=title,
+        annotated,
+        title="Test Novel",
         inferencer=DummyInferencer(),
-        segmenter=DummySegmenter(),
     )
 
     assert isinstance(contracts, list)
@@ -112,73 +120,38 @@ def test_infer_pipeline_basic():
     assert contracts[0].module_id == "M001"
 
 
-def test_infer_pipeline_returns_annotated_markdown():
+def test_infer_pipeline_warns_when_no_modules(monkeypatch, caplog):
     """
-    When return_annotated_markdown=True, the pipeline must return:
-
-        (contracts, annotated_markdown)
+    If no modules are parsed, a warning must be emitted.
     """
-    raw = "She stepped onto the sand."
-    title = "Test Novel"
-
-    contracts, annotated = infer_contract_from_markdown(
-        raw,
-        title=title,
-        inferencer=DummyInferencer(),
-        segmenter=DummySegmenter(),
-        return_annotated_markdown=True,
-    )
-
-    assert isinstance(contracts, list)
-    assert isinstance(annotated, str)
-    assert annotated.startswith("# Test Novel")
-    assert "## Scene 1" in annotated
-
-
-def test_infer_pipeline_uses_default_segmenter_when_missing(monkeypatch):
-    """
-    If no segmenter is provided, the function must construct one internally.
-    """
-
-    class FakeDefaultSegmenter:
-        def segment_markdown(self, text: str, title: str) -> str:
-            return f"# {title}\n\n## Scene Auto\n{text}"
-
     from novel_testbed.inference import auto_contract
 
     monkeypatch.setattr(
         auto_contract,
-        "ModuleSegmenter",
-        lambda: FakeDefaultSegmenter(),
+        "CommonMarkNovelParser",
+        lambda: DummyEmptyParser(),
     )
 
-    raw = "Raw text."
-    title = "Auto Segment"
+    annotated = "# Chapter Only\n\nNo module headers here."
 
-    contracts, annotated = infer_contract_from_markdown(
-        raw,
-        title=title,
-        inferencer=DummyInferencer(),
-        return_annotated_markdown=True,
-    )
+    with caplog.at_level("WARNING", logger="novel_testbed.inference.auto_contract"):
+        contracts = infer_contract_from_markdown(
+            annotated,
+            title="Broken Novel",
+            inferencer=DummyInferencer(),
+        )
 
-    assert "# Auto Segment" in annotated
-    assert "## Scene Auto" in annotated
-    assert len(contracts) == 1
+    assert "No modules were parsed" in caplog.text
+    assert contracts == []
 
 
 def test_pipeline_ordering_is_enforced(monkeypatch):
     """
-    This test enforces the conceptual ordering:
+    Enforces the conceptual ordering:
 
-        segment → parse → infer
+        parse → infer
     """
     calls = []
-
-    class TrackingSegmenter:
-        def segment_markdown(self, text: str, title: str) -> str:
-            calls.append("segment")
-            return f"# {title}\n\n## Scene 1\n{text}"
 
     class TrackingParser:
         def parse(self, text: str, *, title: str):
@@ -199,10 +172,9 @@ def test_pipeline_ordering_is_enforced(monkeypatch):
     )
 
     infer_contract_from_markdown(
-        "text",
+        "# Chapter One\n\n## Scene 1\nText.",
         title="Order Test",
         inferencer=TrackingInferencer(),
-        segmenter=TrackingSegmenter(),
     )
 
-    assert calls == ["segment", "parse", "infer"]
+    assert calls == ["parse", "infer"]

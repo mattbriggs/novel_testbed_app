@@ -1,5 +1,4 @@
-# Hills Like White Elephants
-
+# Chapter One: Hills Like White Elephants
 
 The hills across the valley of the Ebro were long and white. On this
 side there was no shade and no trees and the station was between two

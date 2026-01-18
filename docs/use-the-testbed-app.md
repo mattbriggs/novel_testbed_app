@@ -33,37 +33,55 @@ Reader Before → Reader After
 
 If a scene does not change anything in the reader, then it is decorative. It might be lovely. It might be lyrical. But structurally, it is inert.
 
-The testbed exists to make that visible, without romance or apology.
+The testbed exists to make that visible.
 
 
 
-## The new first step: segmentation
+## The pipeline
 
-Before anything else happens, your text is **segmented**.
-
-That means:
-
-- Raw prose is turned into structured Markdown
-- Chapters (`#`) and modules (`## Scene`, `## Exposition`, `## Transition`) are inserted
-- The book becomes mechanically parseable
-
-This is now the real pipeline:
+The system is now strictly staged:
 
 ```
 Markdown → Segment → Parse → Infer → Assess
 ```
 
-Segmentation is compilation.  
-If structure is wrong, nothing downstream is trustworthy.
+Each step has one responsibility:
 
-You can run it explicitly:
+| Stage   | Purpose |
+|--------|--------|
+| Segment | Create structure |
+| Parse   | Read structure |
+| Infer   | Interpret meaning |
+| Assess  | Validate change |
+
+No command performs another stage’s work.  
+No stage hides inside another.
+
+
+
+## The first step: segmentation
+
+Before anything else happens, your text must be **segmented**.
+
+Segmentation means:
+
+- Raw prose becomes structured Markdown
+- Chapters (`#`) are explicit
+- Modules (`## Scene`, `## Exposition`, `## Transition`) are explicit
+- The book becomes mechanically parseable
+
+Run it:
 
 ```bash
 novel-testbed segment novel.md -o annotated.md
 ```
 
-This produces a version of your book with all structural joints marked.  
-You can open it, read it, and correct it. This is your mechanical skeleton.
+This produces a version of your book with all structural joints visible.
+
+You should open this file and read it.  
+This is your narrative skeleton.
+
+If segmentation is wrong, everything downstream is unreliable.
 
 
 
@@ -73,20 +91,19 @@ For writers, read this as:
 
 > **Reader Response Pattern**
 
-A Reader Response Pattern is a recurring emotional or psychological effect a story can have:
+A Reader Response Pattern is a recurring emotional or psychological effect:
 
 - “Truth is exposed.”
 - “Someone gains power.”
 - “Safety is lost.”
-- “Belonging is created.”
 - “Agency collapses.”
 - “Danger becomes unavoidable.”
 
 These are not tropes.  
-They are **emotional consequences**.
+They are emotional consequences.
 
 Your scenes activate these whether you intend them to or not.  
-This system simply asks you to be honest about which ones you are using.
+The system simply asks you to name them.
 
 
 
@@ -95,27 +112,25 @@ This system simply asks you to be honest about which ones you are using.
 You do not need to think like a programmer.  
 You only need to answer three questions per scene:
 
-1. What does the reader believe or feel *before* this scene?
-2. What does the reader believe or feel *after* this scene?
+1. What does the reader feel or believe before?
+2. What does the reader feel or believe after?
 3. What changed?
 
-That’s it.
-
-Everything else is just scaffolding so the system can check your answers.
+Everything else is scaffolding.
 
 
 
 ## A typical workflow
 
-### 1. Write or import your novel
+### 1. Write your novel
 
-It can be raw prose or already structured Markdown. The system will normalize it.
+Raw prose is fine:
 
 ```markdown
 She stepped onto the sand. The wind was sharp.
 ```
 
-or:
+Or structured Markdown:
 
 ```markdown
 # Chapter One
@@ -126,40 +141,56 @@ She stepped onto the sand.
 
 
 
-### 2. Segment your novel (optional but clarifying)
+### 2. Segment your novel
 
 ```bash
 novel-testbed segment novel.md -o annotated.md
 ```
 
-This gives you a visible structural map.  
-You can fix chapter boundaries, rename scenes, or add exposition modules by hand.
+Now you have explicit structure.  
+Fix chapters. Rename scenes. Insert exposition.  
+This is mechanical, not artistic.
 
 
 
-### 3. Run inference (semantic pass)
+### 3. Parse structure into a blank contract
 
 ```bash
-novel-testbed infer novel.md \
-  --annotated annotated.md \
-  -o contract.yaml
+novel-testbed parse annotated.md -o contract.yaml
 ```
 
-Now inference does four things:
+This creates your narrative worksheet.
 
-1. Segments your text  
-2. Parses the structure  
-3. Infers reader state changes  
-4. Writes:
-   - a contract (`contract.yaml`)
-   - and optionally the annotated Markdown (`annotated.md`)
-
-The LLM is not judging you.  
-It is acting as a tireless first reader.
+Nothing is judged yet.  
+You are declaring intent.
 
 
 
-### 4. Read the contract like margin notes
+### 4. Infer reader response (semantic pass)
+
+```bash
+novel-testbed infer annotated.md -o contract.yaml
+```
+
+Important:
+- `infer` does **not** segment
+- `infer` expects already-annotated Markdown
+- Structure must exist before inference
+
+What happens here:
+
+1. The structure is parsed
+2. An LLM infers:
+   - pre_state
+   - post_state
+   - expected_changes
+3. A populated contract is written
+
+The LLM is acting like a tireless first reader, not a critic.
+
+
+
+### 5. Read the contract like margin notes
 
 ```yaml
 pre_state:
@@ -177,32 +208,28 @@ expected_changes:
   - "Control becomes fragile"
 ```
 
-This is not a grade.  
-It is a question:
+This is a question, not a verdict:
 
 > “Is this true?”
 
-If not, either the scene is weak or the interpretation is wrong.  
-Both are useful discoveries.
 
 
-
-### 5. Assess your book
+### 6. Assess your book
 
 ```bash
 novel-testbed assess contract.yaml -o report.json
 ```
 
-If a scene fails, it usually means:
+A failure usually means:
 
-> “You said something changed, but your own data says nothing changed.”
+> “You promised movement, but your own data shows none.”
 
-That is not judgment.  
+That is not criticism.  
 That is precision.
 
 
 
-## What this is *not*
+## What this is not
 
 This is not:
 
@@ -214,21 +241,17 @@ This is not:
 It does not know if your writing is “good.”  
 It knows whether your writing **moves the reader state**.
 
-Those are different questions. One is taste.  
-The other is mechanics.
 
 
-
-## Why this can feel uncomfortable
+## Why this works
 
 Writers trust:
 
 - instinct  
 - rhythm  
-- tone  
 - resonance  
 
-This system asks you to also trust:
+This system adds:
 
 - consequence  
 - escalation  
@@ -236,7 +259,7 @@ This system asks you to also trust:
 - transformation  
 
 It does not replace intuition.  
-It makes intuition accountable.
+It makes intuition visible and testable.
 
 
 
@@ -253,6 +276,6 @@ First they ask:
 
 > “Did I move where I intended?”
 
-This tool is asking that question for your story.
+This tool asks that question of your story.
 
-Everything else is yours.
+Everything else remains yours.

@@ -1,14 +1,13 @@
 # CLI Usage
 
-This app treats your novel like a system that either changes something or wastes space.  
-Each scene is evaluated as a transformation of reader state: before and after.  
-If nothing changes, the scene failed. No mysticism, no vibes, no “but it felt important.”  
-Just movement or dead weight.
+The Novel Testbed treats your novel as a system of transformations.
+Each scene must move the reader from one state to another. If nothing changes,
+the scene is structurally inert.
 
 You write prose.  
-The CLI turns that prose into structure, intent, and tests.
+The CLI turns prose into structure, intent, and verification.
 
-Your novel is compiled through stages:
+Your novel is compiled through explicit stages:
 
 ```
 Markdown → Segment → Parse → Infer → Assess
@@ -17,36 +16,33 @@ Markdown → Segment → Parse → Infer → Assess
 This is not a parser.  
 It is a narrative compiler.
 
-Writers use this tool to expose weak scenes, false momentum, and structural stagnation.  
-It doesn’t judge style. It judges consequence.
-
 
 
 ## Commands
 
-The Novel Testbed CLI now provides **four** commands:
+The Novel Testbed CLI provides four commands:
 
-| Command  | Purpose |
-|---------|--------|
+| Command   | Purpose |
+|----------|--------|
 | `segment` | Convert raw prose into structured Markdown |
 | `parse`   | Build a blank contract YAML from structured Markdown |
-| `infer`   | Build a populated contract using an LLM |
+| `infer`   | Populate a contract using an LLM |
 | `assess`  | Validate a contract against narrative rules |
 
-The CLI is intentionally thin.  
-All real logic lives in the domain modules.
+Each command has one responsibility.  
+No command performs another’s work.
 
 
 
 ## Invoking the CLI
 
-If installed as a script entrypoint:
+If installed as an entrypoint:
 
 ```bash
 novel-testbed --help
 ```
 
-If running directly from the repo:
+From the repo:
 
 ```bash
 python3 -m novel_testbed.cli --help
@@ -56,13 +52,10 @@ python3 -m novel_testbed.cli --help
 
 ## Input format
 
-You may provide:
+There are two kinds of Markdown:
 
-1. **Raw prose Markdown**  
-2. **Already-annotated Markdown**
-
-If structure is missing, the **segmenter will create it**.  
-If structure exists, it will be preserved.
+1. **Raw prose Markdown** → must go through `segment`
+2. **Annotated Markdown** → used by `parse` and `infer`
 
 Canonical structure:
 
@@ -82,7 +75,7 @@ Text...
 Everything between two `##` headings is one module.
 
 Structure is not decoration.  
-It is load-bearing.
+It is the grammar of your book.
 
 
 
@@ -92,12 +85,18 @@ It is load-bearing.
 novel-testbed segment novel.md -o annotated.md
 ```
 
-Converts raw prose into annotated Markdown:
+Purpose:
+- Insert chapter headings if missing
+- Insert at least one module
+- Normalize structure
 
-- Adds `# Chapter`
-- Adds `## Scene`, `## Exposition`, etc.
+Output is always annotated Markdown.
 
-This is your structural normalization phase.
+This step is mechanical and deterministic unless `--llm` is used.
+
+```bash
+novel-testbed segment novel.md -o annotated.md --llm
+```
 
 
 
@@ -123,30 +122,27 @@ modules:
     expected_changes: []
 ```
 
-This is your **spec file**.  
-Nothing passes until you fill it in.
+This is your **specification file**.
+Nothing is evaluated yet. You are declaring intent.
 
 
 
-## 3. Infer: Automatically build a full contract (LLM-powered)
+## 3. Infer: Populate the contract (LLM-powered)
 
 ```bash
-novel-testbed infer novel.md \
-    --annotated annotated.md \
-    -o contract.yaml
+novel-testbed infer annotated.md -o contract.yaml
 ```
 
 Pipeline:
 
 ```
-Markdown → Segment → Parse → LLM → Contract YAML
+Annotated Markdown → Parse → LLM → Contract YAML
 ```
 
-The `--annotated` flag persists the segmented Markdown so you can:
-
-- Inspect structure
-- Commit structure
-- Diff structure
+Important:
+- `infer` does **not** segment
+- `infer` expects already-annotated Markdown
+- Structure must exist before inference
 
 Each module is filled with:
 
@@ -154,36 +150,28 @@ Each module is filled with:
 - post_state
 - expected_changes
 - fantasy alignment
-- threat/agency levels
+- threat / agency levels
 
-You now have a **book compiler**.
+This step converts structure into meaning.
 
 
 
 ## OpenAI API Key (for `infer`)
 
-The `infer` command requires an OpenAI API key.
-
-It must be provided as:
+The `infer` command requires an OpenAI API key:
 
 ```
 OPENAI_API_KEY
 ```
 
-Never in code.  
-Never in YAML.  
-Never in Git.
-
 Set it:
 
 macOS / Linux:
-
 ```bash
 export OPENAI_API_KEY="sk-..."
 ```
 
 Windows:
-
 ```powershell
 setx OPENAI_API_KEY "sk-..."
 ```
@@ -194,9 +182,7 @@ Verify:
 echo $OPENAI_API_KEY
 ```
 
-If missing, inference will refuse to run.
-
-That is intentional.
+If the key is missing, inference refuses to run.
 
 
 
@@ -252,11 +238,10 @@ Output:
 ]
 ```
 
-Translation:
-
-You promised movement.  
-The data says stagnation.  
-Fix or delete.
+Interpretation:
+- You declared change
+- The state data shows none
+- The scene is structurally inert
 
 
 
@@ -279,7 +264,7 @@ Extend freely:
 - moral_distortion  
 - trust_erosion  
 
-The engine only cares whether they change.
+The engine only cares that values move.
 
 
 
@@ -305,18 +290,14 @@ Current rules:
 | Missing expected changes | WARN |
 | Declared change but no state difference | FAIL |
 
-You are not building a parser.  
-You are building a **narrative linter**.
+This is not a style checker.  
+It is a **structural integrity checker** for narrative movement.
 
 
 
 ## Logging
 
-```python
-logging.getLogger("novel_testbed")
-```
-
-Debug:
+Enable debug logging:
 
 ```bash
 novel-testbed --log-level DEBUG assess contract.yaml
@@ -324,6 +305,7 @@ novel-testbed --log-level DEBUG assess contract.yaml
 
 You will see:
 
-- which modules fire which rules
-- why failures occur
-- where structure breaks
+- which modules fired which rules
+- why failures occurred
+- where structure or intent collapsed
+```

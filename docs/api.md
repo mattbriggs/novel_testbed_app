@@ -7,8 +7,10 @@ If something is missing here, it is not part of the real API.
 
 This is intentional.
 
-Application layers:
+Application layers:  
  - [Core](api-core.md)  
+ - [Segmentation](api-segmentation.md). 
  - [Inference](api-inference.md)  
  - [Parser](api-parser.md)  
  - [Contracts](api-contracts.md)  
+ - [Utilities](api-utils.md)  

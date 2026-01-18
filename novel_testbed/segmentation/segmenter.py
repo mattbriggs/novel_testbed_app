@@ -11,9 +11,8 @@ This is the first phase of the narrative compiler:
 The base ModuleSegmenter is deterministic and conservative. It guarantees:
 - A top-level chapter header
 - At least one module header
-- Idempotency when input is already annotated
-
-The LLMSegmenter extends this with semantic segmentation using an LLM.
+- Correct chapter → module ordering
+- Idempotency when input is already well-formed
 """
 
 from __future__ import annotations
@@ -32,11 +31,12 @@ class ModuleSegmenter:
     """
     Deterministic Markdown segmenter.
 
-    Inserts minimal structural markup when missing:
-    - A single chapter heading
-    - One Scene module wrapping the entire text
+    Guarantees a structurally valid document:
 
-    If the text already contains module headings, it is returned unchanged.
+    - One top-level chapter heading: `# Title`
+    - At least one module heading: `## Scene ...`
+    - Chapter must appear before any module
+    - Idempotent for already-correct Markdown
     """
 
     _chapter_re = re.compile(r"^#\s+.+", re.MULTILINE)
@@ -46,46 +46,65 @@ class ModuleSegmenter:
         """
         Segment raw Markdown into structurally annotated Markdown.
 
-        This guarantees:
-        - A top-level ``#`` chapter heading
-        - At least one ``## Scene`` module
+        Structural invariants enforced:
+        - Chapter must come before any module
+        - At least one chapter exists
+        - At least one module exists
 
-        If segmentation is already present, input is returned unchanged.
-
-        :param text: Raw Markdown prose.
+        :param text: Raw or partially annotated Markdown.
         :param title: Novel title used for synthetic chapter heading.
-        :return: Annotated Markdown.
+        :return: Valid annotated Markdown.
         """
         logger.debug("Starting deterministic segmentation for '%s'", title)
 
-        has_chapter = bool(self._chapter_re.search(text))
-        has_module = bool(self._module_re.search(text))
+        text = text.strip()
+        lines = text.splitlines()
 
-        if has_chapter and has_module:
-            logger.info("Markdown already segmented; returning unchanged.")
-            return text
+        chapter_match = self._chapter_re.search(text)
+        module_match = self._module_re.search(text)
 
-        logger.info("Markdown not segmented; applying minimal structural markup.")
+        has_chapter = chapter_match is not None
+        has_module = module_match is not None
 
-        lines = text.strip().splitlines()
+        # Detect inversion: module appears before chapter
+        inverted = (
+            has_chapter
+            and has_module
+            and module_match.start() < chapter_match.start()
+        )
+
+        if has_chapter and has_module and not inverted:
+            logger.info("Markdown already correctly segmented; returning unchanged.")
+            return text + "\n"
+
+        logger.info("Markdown is missing or has invalid structure; rebuilding.")
+
+        body_lines = []
+
+        for line in lines:
+            if not line.strip().startswith("#"):
+                body_lines.append(line)
 
         output = []
 
-        # Ensure chapter
-        if not has_chapter:
-            chapter_title = title or "Untitled"
-            output.append(f"# {chapter_title}")
-            output.append("")
+        # Enforce chapter
+        chapter_title = title or "Untitled"
+        output.append(f"# {chapter_title}")
+        output.append("")
 
-        # Ensure at least one module
+        # Enforce at least one module
         output.append("## Scene 1")
         output.append("")
 
-        output.extend(lines)
+        output.extend(body_lines)
 
         segmented = "\n".join(output).strip() + "\n"
 
-        logger.debug("Segmentation complete (%d characters).", len(segmented))
+        logger.debug(
+            "Segmentation complete. Chapter inserted: %s | %d chars.",
+            chapter_title,
+            len(segmented),
+        )
         return segmented
 
 
@@ -93,25 +112,19 @@ class LLMSegmenter(ModuleSegmenter):
     """
     LLM-powered semantic segmenter.
 
-    Uses an OpenAI-backed inferencer to classify and insert:
-    - Scene
-    - Exposition
-    - Transition
+    Uses an OpenAI-backed inferencer to insert:
+    - Chapter titles
+    - Scene boundaries
+    - Exposition blocks
+    - Transition modules
 
-    headings based on narrative flow.
-
-    This is the narrative equivalent of a real lexer/parser front-end.
+    This replaces naive segmentation with semantic awareness.
     """
 
     def __init__(
         self,
         inferencer: Optional[OpenAIContractInferencer] = None,
     ) -> None:
-        """
-        Initialize the LLM-backed segmenter.
-
-        :param inferencer: Optional preconfigured inferencer instance.
-        """
         if inferencer is None:
             logger.debug("Creating default OpenAI inferencer for LLMSegmenter.")
             client = OpenAILLMClient()
@@ -125,18 +138,20 @@ class LLMSegmenter(ModuleSegmenter):
 
         :param text: Raw Markdown prose.
         :param title: Novel title.
-        :return: Annotated Markdown with semantic modules.
+        :return: Structurally valid annotated Markdown.
         """
         logger.info("Starting LLM-based segmentation for '%s'", title)
 
         prompt = (
             "You are a narrative segmentation engine.\n"
-            "Rewrite the following Markdown by inserting:\n"
-            "- '# Chapter Title'\n"
-            "- '## Scene ...'\n"
-            "- '## Exposition ...'\n"
-            "- '## Transition ...'\n"
-            "where appropriate.\n\n"
+            "Rewrite the following Markdown so that:\n"
+            "1. A '# Chapter Title' appears before any modules.\n"
+            "2. Each narrative unit starts with one of:\n"
+            "   - '## Scene ...'\n"
+            "   - '## Exposition ...'\n"
+            "   - '## Transition ...'\n"
+            "3. Ordering is strictly:\n"
+            "   Chapter → Module → Content\n\n"
             "Return only valid Markdown.\n\n"
             f"TITLE: {title}\n\n"
             f"TEXT:\n{text}"

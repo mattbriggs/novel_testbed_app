@@ -23,13 +23,11 @@ Rules:
 - `##` = a unit you want to evaluate (scene/exposition/transition)
 - Everything under a `##` belongs to that module until the next `##`
 
-But you **don’t have to**. If your draft is raw prose with no headings, the tool can now create structure for you.
+But you **don’t have to**. If your draft is raw prose with no headings, the tool can create structure for you.
 
+## 2) Segment the draft into parseable modules
 
-
-## 2) (New) Segment the draft into parseable modules
-
-Segmentation is the new first stage. It inserts `#` and `##` markers so the parser can do its job.
+Segmentation is the first stage. It inserts `#` and `##` markers so the parser can do its job.
 
 Run:
 
@@ -38,56 +36,38 @@ novel-testbed segment novel.md -o annotated.md
 ```
 
 What you get:
-- `annotated.md` that contains explicit `# Chapter` and `## Scene/Exposition/Transition`
-- Your original prose preserved, just wrapped in joints
+- `annotated.md` containing explicit chapter (`#`) and module (`## ...`) markers
+- Your original prose preserved, just wrapped in structural joints
 
-This is the simplest way to see “what the tool thinks your modules are.”  
-If you hate the boundaries, fix them here. You’re allowed.
+This is the simplest way to see what the tool considers “modules.”  
+If you dislike the boundaries, fix them here.
 
+## 3) Parse the annotated book into a blank contract (structure only)
 
+Parsing produces a **blank contract**: a worksheet for what each module does to the reader.
 
-## 3) Parse the book into a blank contract (structure only)
-
-Now you have two options:
-
-### Option A: parse your original (if it’s already structured)
-
-```bash
-novel-testbed parse novel.md -o contract.yaml
-```
-
-### Option B: parse the annotated Markdown (recommended if you used `segment`)
+Run:
 
 ```bash
 novel-testbed parse annotated.md -o contract.yaml
 ```
 
-Either way, you just created your **contract file**: a worksheet for what each module does to the reader.
-
-At this point nothing is evaluated yet. You just generated the template.
-
-
+At this point nothing is evaluated yet. You have generated the template.
 
 ## 4) Choose your approach: manual contract or LLM-assisted contract
 
 ### Option A: Manual (slow, precise)
 You fill in `contract.yaml` yourself.
 
-### Option B: Inferred (fast, surprisingly useful)
+### Option B: Inferred (fast, useful as a starting point)
 Let the tool create a first-pass contract.
 
-**If your input is already structured Markdown:**
+Important: `infer` now assumes your input is **already segmented** (annotated Markdown).
+
+Run:
 
 ```bash
-novel-testbed infer novel.md -o contract.yaml
-```
-
-**If your input might be raw prose, or you want the annotated output saved:**
-
-```bash
-novel-testbed infer novel.md \
-  --annotated annotated.md \
-  -o contract.yaml
+novel-testbed infer annotated.md -o contract.yaml
 ```
 
 What inference attempts to infer:
@@ -97,9 +77,7 @@ What inference attempts to infer:
 - genre drift
 - expected reader-response changes
 
-Treat this like notes from a blunt first reader, not divine truth.
-
-
+Treat this like notes from a first reader, not a verdict.
 
 ## 5) Read the contract module-by-module
 
@@ -114,9 +92,7 @@ You’re asking one question:
 > “Is this what the scene actually does?”
 
 If the contract is wrong, fix the contract.  
-If the contract is right but embarrassing, fix the scene.
-
-
+If the contract is right but disappointing, fix the scene.
 
 ## 6) Make the reader-state fields feel natural
 
@@ -142,14 +118,12 @@ expected_changes:
   - "Control weakens"
 ```
 
-If numbers make you itchy:
+If numbers feel unnatural:
 - Think of `0.1` as “low”
 - `0.5` as “medium”
 - `0.9` as “high”
 
 You’re not doing math. You’re recording pressure.
-
-
 
 ## 7) Run an assessment pass
 
@@ -161,13 +135,11 @@ This produces a report with:
 - PASS / WARN / FAIL per module
 - findings explaining what triggered the result
 
-
-
 ## 8) Interpret failures like a revision assistant, not a verdict
 
 A typical FAIL means:
 
-- You declared change, but pre_state == post_state
+- You declared change, but `pre_state == post_state`
 
 Translation:
 
@@ -179,11 +151,9 @@ That usually points to one of these issues:
 - the scene is atmospheric but not consequential
 - the scene contains movement but you didn’t capture it in the contract
 
-
-
 ## 9) Revise with a clear target
 
-Pick one failing or warning module. Then choose *one* fix:
+Pick one failing or warning module. Then choose one fix:
 
 - **Increase pressure** (raise threat, reduce agency, tighten power)
 - **Clarify power** (who has leverage now?)
@@ -193,10 +163,8 @@ Pick one failing or warning module. Then choose *one* fix:
 
 Then update either:
 - the manuscript
-- or the contract
+- the contract
 - or both
-
-
 
 ## 10) Re-run the loop
 
@@ -211,9 +179,7 @@ You’re looking for:
 - fewer WARNs
 - clearer intent
 
-This is iterative revision, just with receipts.
-
-
+This is iterative revision with feedback you can track.
 
 ## 11) Use it as a map of the whole book
 
@@ -224,20 +190,14 @@ Once the contract is decent, it becomes a high-level lens:
 - Where does power flip?
 - Where does the book stall?
 
-This is the part that feels like having x-ray vision, minus the radiation lawsuit.
-
-
-
 ## Suggested routine (simple and realistic)
 
 - If your draft is raw prose: run `segment` once and keep `annotated.md` as your “structured draft.”
-- Run `infer` once to get a starting contract (and save annotated output with `--annotated`).
+- Run `infer` once on `annotated.md` to get a starting contract.
 - Fix the contract until it matches your intent.
 - Run `assess` after each revision session.
 - Focus only on FAILs first.
-- Treat WARNs as “notes,” not problems.
-
-
+- Treat WARNs as notes, not problems.
 
 ## The point
 
@@ -246,4 +206,4 @@ It forces your intuition to make a claim you can check:
 
 > “This scene changes the reader.”
 
-Then it asks: *prove it.*
+Then it asks you to make that claim explicit.
