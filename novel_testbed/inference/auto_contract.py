@@ -12,8 +12,6 @@ from novel_testbed.models import ModuleContract
 from novel_testbed.parser.commonmark import CommonMarkNovelParser
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
-logger.propagate = True
 
 
 def infer_contract_from_markdown(

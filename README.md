@@ -1,15 +1,17 @@
 # Novel Testbed
 
-A unit-test harness for novels.  
-It treats a work of fiction as a system that must transform reader state, module by module.
+A unit-test harness for novels.
+It treats a work of fiction as a system that must transform reader state,
+module by module.
 
-If a scene doesn’t change power, tension, genre, or emotional stakes, it fails.  
+If a scene doesn't change power, tension, genre, or emotional stakes, it fails.
 No vibes. No glossing. Just execution.
 
-This tool is designed to make narrative intent explicit and falsifiable, in the same way unit tests do for software.
+This tool makes narrative intent explicit and falsifiable, in the same way
+unit tests do for software.
 
-You are not “expressing yourself.”  
-You are running a system.  
+You are not "expressing yourself."
+You are running a system.
 This tells you whether the system moves.
 
 
@@ -27,42 +29,54 @@ If nothing changes, the module failed its job.
 
 The system enforces three things:
 
-1. You must declare what each module intends to do.  
-2. You must declare how the reader’s state changes.  
+1. You must declare what each module intends to do.
+2. You must declare how the reader's state changes.
 3. The system verifies that your declared intent is structurally coherent.
 
-This does not judge your prose.  
+This does not judge your prose.
 It judges whether your prose *does anything*.
 
 
 
 ## Architecture
 
-The system is now a true pipeline:
+The system is a four-stage narrative compiler:
 
 ```
 Raw Markdown
       ↓
-Segmentation (adds chapters & modules)
+Segmentation  (adds chapters & module boundaries)
       ↓
-Parsing (builds structural modules)
+Parsing       (builds structural modules)
       ↓
-Inference (builds narrative contracts)
+Inference     (builds narrative contracts)
       ↓
-Assessment (validates narrative movement)
+Assessment    (validates narrative movement)
 ```
 
 Think of it like a compiler:
 
 | Phase | Role |
-|------|------|
-| `segment` | Creates structure |
-| `parse` | Builds an AST |
-| `infer` | Adds semantics |
-| `assess` | Performs static analysis |
+|-------|------|
+| `segment` | Normalization — creates structure |
+| `parse` | Syntax — builds an AST |
+| `infer` | Semantics — adds meaning |
+| `assess` | Static analysis — validates contracts |
 
-You are no longer “writing Markdown.”  
+You are no longer "writing Markdown."
 You are compiling narrative intent.
+
+
+
+## Design Patterns
+
+| Pattern | Where used |
+|---------|-----------|
+| Strategy | `NovelParser`, `ModuleSegmenter` / `LLMSegmenter` |
+| Template Method | `ContractInferencer` (abstract base) |
+| Protocol | `Rule` (structural typing for assessment rules) |
+| Dependency Injection | `OpenAIContractInferencer(client=...)`, `LLMSegmenter(client=...)` |
+| Chain of Responsibility | State chaining in `OpenAIContractInferencer` |
 
 
 
@@ -110,7 +124,7 @@ Text...
 ```
 
 | Markdown | Meaning |
-|--------|--------|
+|----------|---------|
 | `# Title` | Chapter |
 | `## Scene ...` | Scene module |
 | `## Exposition ...` | Exposition module |
@@ -118,23 +132,23 @@ Text...
 
 Everything between two `##` headings is treated as one module.
 
-If your text lacks this structure, the **segmenter** will create it.  
+If your text lacks this structure, the **segmenter** will create it.
 If you supply it, the system will respect it.
 
-The parser is strict on purpose.  
+The parser is strict on purpose.
 Structure is not decoration here. It is load-bearing.
 
 
 
 ## Workflow Overview
 
-There are now **four** major workflows:
+There are **four** major commands:
 
 | Command | Purpose |
-|------|------|
+|---------|---------|
 | `segment` | Turn raw prose into structured Markdown |
 | `parse` | Structural parsing only (blank contract) |
-| `infer` | Structural + semantic inference |
+| `infer` | Structural + semantic inference (LLM-powered) |
 | `assess` | Validate a contract against narrative rules |
 
 Pipeline view:
@@ -143,11 +157,7 @@ Pipeline view:
 segment → parse → infer → assess
 ```
 
-Or as a compiler:
-
-```
-segment → AST → semantic model → static analysis
-```
+See [README-cli.md](README-cli.md) for full command reference.
 
 
 
@@ -159,16 +169,19 @@ Run everything:
 pytest
 ```
 
-Covered:
+**97 tests**, covering:
 
-- Segmentation (raw prose → structured Markdown)
+- Segmentation (deterministic and LLM-backed — fully stubbed)
 - Markdown parsing
 - Contract generation
-- Contract loading
-- YAML round-trips
-- Rule evaluation
-- CLI parsing
+- Contract loading and YAML round-trips
+- Rule evaluation and assessment engine
+- CLI argument parsing and all four commands
 - LLM inference (fully stubbed)
+- Source fingerprinting and provenance
+- Prompt construction
+- Inference type validation helpers
+- Full end-to-end pipeline integration
 
 If the tests fail, the book is structurally unsound.
 
@@ -180,20 +193,30 @@ That is not metaphorical.
 
 Most novels are evaluated by:
 
-- tone  
-- voice  
-- prestige  
-- vibes  
+- tone
+- voice
+- prestige
+- vibes
 
 This tool evaluates:
 
-- structural movement  
-- power shifts  
-- narrative pressure  
-- declared intent vs effect  
+- structural movement
+- power shifts
+- narrative pressure
+- declared intent vs effect
 
-It does not care if your sentences are beautiful.  
+It does not care if your sentences are beautiful.
 It cares if they *move the system*.
 
-Art happens inside constraints.  
+Art happens inside constraints.
 This tool makes the constraints explicit.
+
+
+
+## Documentation
+
+Full documentation (MkDocs): see [README-docs.md](README-docs.md)
+
+CLI command reference: see [README-cli.md](README-cli.md)
+
+Roadmap for future development: see [Roadmap.md](Roadmap.md)

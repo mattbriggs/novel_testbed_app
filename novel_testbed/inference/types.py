@@ -25,18 +25,6 @@ class InferredState:
     agency_level: Optional[float]
 
 
-@dataclass(frozen=True)
-class InferredModuleContract:
-    """
-    Inference result for a single module.
-    """
-
-    expected_changes: List[str]
-    post_state: InferredState
-    confidence: float = 0.5
-    notes: Dict[str, Any] | None = None
-
-
 def require_keys(obj: Dict[str, Any], keys: List[str]) -> None:
     """
     Require that the given dict has the specified keys.

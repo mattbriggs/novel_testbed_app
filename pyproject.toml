@@ -58,5 +58,6 @@ all = [
 [project.scripts]
 novel-testbed = "novel_testbed.cli:main"
 
-[tool.setuptools]
-packages = ["novel_testbed"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["novel_testbed*"]

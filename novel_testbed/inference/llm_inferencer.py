@@ -1,5 +1,12 @@
 """
-LLM-based ContractInferencer implementation.
+LLM-based :class:`ContractInferencer` implementation.
+
+This module provides :class:`OpenAIContractInferencer`, which uses
+:class:`~novel_testbed.inference.llm_client.OpenAILLMClient` to populate
+narrative contracts one module at a time.
+
+Reader state is chained across modules so that each module's ``pre_state``
+equals the previous module's ``post_state``, preserving narrative continuity.
 """
 
 from __future__ import annotations
@@ -20,15 +27,39 @@ class OpenAIContractInferencer(ContractInferencer):
     """
     Contract inference using OpenAI LLM calls.
 
-    This inferencer treats the novel as a sequence:
-    - pre_state is the prior module's post_state
-    - post_state is inferred from the current module text
+    This inferencer treats the novel as a sequential state machine:
+
+    - ``pre_state`` of module *N* equals ``post_state`` of module *N-1*.
+    - ``post_state`` is inferred from the current module's text via the LLM.
+
+    This chaining ensures that the reader's accumulating state across the
+    novel is represented faithfully in the generated contracts.
     """
 
     def __init__(self, client: OpenAILLMClient) -> None:
+        """
+        Initialize the inferencer.
+
+        :param client: An :class:`~novel_testbed.inference.llm_client.OpenAILLMClient`
+                       instance used to call the LLM API.
+        """
         self._client = client
 
     def infer(self, modules: Sequence[Module], *, novel_title: str) -> List[ModuleContract]:
+        """
+        Infer a full contract for a sequence of modules.
+
+        Each module is sent to the LLM individually. The ``post_state`` returned
+        by the LLM becomes the ``pre_state`` of the next module, chaining reader
+        state across the entire novel.
+
+        :param modules: Parsed modules from a :class:`~novel_testbed.models.Novel`.
+        :param novel_title: Title of the novel, passed to the LLM for context.
+        :return: List of fully populated :class:`~novel_testbed.models.ModuleContract`
+                 objects in the same order as the input modules.
+        :raises ValueError: If the LLM response is missing required keys or
+                            contains invalid field values.
+        """
         logger.info("Inferring contracts for %d modules.", len(modules))
 
         contracts: List[ModuleContract] = []
@@ -70,6 +101,15 @@ class OpenAIContractInferencer(ContractInferencer):
 
     @staticmethod
     def _validate_payload(payload: Dict[str, Any], *, module_id: str) -> None:
+        """
+        Validate that an inference payload contains the required keys and types.
+
+        :param payload: Raw dictionary returned by the LLM via
+                        :meth:`~.OpenAILLMClient.infer_json`.
+        :param module_id: Module identifier used in error messages.
+        :raises ValueError: If any required key is missing or a field has an
+                            unexpected type or out-of-range value.
+        """
         logger.debug("Validating inference payload for module %s", module_id)
 
         require_keys(payload, ["expected_changes", "post_state", "confidence", "notes"])
@@ -97,6 +137,15 @@ class OpenAIContractInferencer(ContractInferencer):
 
     @staticmethod
     def _to_reader_state(d: Dict[str, Any]) -> ReaderState:
+        """
+        Convert a raw post-state dictionary into a :class:`~novel_testbed.models.ReaderState`.
+
+        Uses :class:`~novel_testbed.inference.types.InferredState` as an
+        intermediate validated container before building the final model.
+
+        :param d: Dictionary with reader-state keys from the LLM response.
+        :return: Populated :class:`~novel_testbed.models.ReaderState` instance.
+        """
         state = InferredState(
             genre=d.get("genre"),
             power_balance=d.get("power_balance"),

@@ -1,11 +1,32 @@
 
 # Software Design
 
-Novel Testbed is designed to treat a novel as a system that performs work. Each scene, exposition block, or transition is assumed to exist for one reason: to change the reader’s state in some measurable way. The architecture enforces this by separating structure, meaning, and evaluation into distinct, testable stages. Segmentation normalizes raw prose into explicit narrative joints. Parsing turns those joints into stable structural objects. Contracts make narrative intent explicit. Inference can automate that intent, but never replaces it. Assessment rules verify whether declared change actually occurred. An emergent property of this design is that a novel becomes observable as a dynamic system: pressure curves appear, dead zones become visible, repetition surfaces, and structural dishonesty is exposed. The system does not judge artistry. It makes narrative movement legible. The design supports this by ensuring every stage is deterministic, inspectable, and falsifiable, so that “this scene matters” becomes a claim that can be tested rather than a feeling that must be defended.
+Novel Testbed is designed to treat a novel as a system that performs work.
+Each scene, exposition block, or transition is assumed to exist for one reason:
+to change the reader's state in some measurable way.
+
+The architecture enforces this by separating structure, meaning, and evaluation
+into distinct, testable stages. Segmentation normalizes raw prose into explicit
+narrative joints. Parsing turns those joints into stable structural objects.
+Contracts make narrative intent explicit. Inference can automate that intent,
+but never replaces it. Assessment rules verify whether declared change actually
+occurred.
+
+An emergent property of this design is that a novel becomes observable as a
+dynamic system: pressure curves appear, dead zones become visible, repetition
+surfaces, and structural dishonesty is exposed. The system does not judge
+artistry. It makes narrative movement legible.
+
+Every stage is deterministic, inspectable, and falsifiable — so that
+"this scene matters" becomes a claim that can be tested rather than a
+feeling that must be defended.
+
+---
 
 ## Architecture
 
-At a high level, the system is a pipeline with two entry paths and one mandatory normalization stage:
+At a high level, the system is a pipeline with two entry paths and one
+mandatory normalization stage:
 
 ```mermaid
 flowchart LR
@@ -24,124 +45,148 @@ flowchart LR
     F --> G[PASS / WARN / FAIL Report]
 ```
 
-### Explanation
+### Pipeline stages
 
-1. **Segmenter (New First Stage)**  
-   The segmenter guarantees that raw prose is converted into *structurally valid Markdown*:
-
+1. **Segmenter** — Guarantees structurally valid Markdown:
    - Adds chapter headers if missing
    - Adds module headers (`## Scene`, `## Exposition`, `## Transition`)
-   - Ensures idempotence if Markdown is already structured
-   - Produces canonical input for parsing
+   - Ensures correct chapter → module ordering
+   - Guarantees idempotency on already-structured input
+   - Two implementations: `ModuleSegmenter` (deterministic) and
+     `LLMSegmenter` (semantic, OpenAI-backed)
 
-   The parser never receives unstructured prose.  
-   That responsibility now belongs solely to segmentation.
-
-2. **Parser**  
-   Consumes only annotated Markdown and identifies:
-
+2. **Parser** — Consumes only annotated Markdown and identifies:
    - Chapters
-   - Modules
-   - Module type
-   - Text anchors
-   - Stable module IDs
+   - Modules with their types
+   - Text anchors (start / end previews)
+   - Stable positional module IDs (`M001`, `M002`, ...)
 
-3. **Contract Generator**  
-   Converts parsed modules into a YAML contract that declares:
+3. **Contract Generator** — Converts parsed modules into a YAML contract:
+   - Reader `pre_state`
+   - Reader `post_state`
+   - Intended narrative change (`expected_changes`)
 
-   - Reader pre-state
-   - Reader post-state
-   - Intended narrative change
+4. **LLM Inferencer** — Operates on parsed modules and fills the same contract
+   automatically, chaining `post_state` → `pre_state` across modules.
 
-4. **LLM Inferencer**  
-   Operates on parsed modules and fills the same contract automatically.
-
-5. **Assessment Engine**  
-   Applies rule objects to detect:
-
+5. **Assessment Engine** — Applies rule objects to detect:
    - Missing change
    - Contradictory change
    - Inert modules
    - Structural dishonesty
 
-This now mirrors:
+This mirrors a standard compiler:
 
 ```
 normalize → parse → specify → validate → diagnose
 ```
 
-Segmentation is normalization.
-
 ---
 
-## Design Patterns (Add Segmentation)
+## Design Patterns
 
 ### Strategy Pattern (Segmentation + Parsing)
+
+Both segmentation and parsing use the Strategy pattern to allow alternative
+implementations without changing the pipeline.
 
 ```mermaid
 classDiagram
     class ModuleSegmenter {
-        +segment_markdown(text: str, title: str) str
+        +segment_markdown(text, title) str
     }
-
     class LLMSegmenter {
-        +segment_markdown(text: str, title: str) str
+        +segment_markdown(text, title) str
     }
-
     ModuleSegmenter <|-- LLMSegmenter
-```
 
-This allows:
-
-- deterministic segmentation
-- optional LLM-based segmentation
-- future alternatives without touching parsing or inference
-
-And for parsing:
-
-```mermaid
-classDiagram
     class NovelParser {
-        +parse(text: str, title: str) Novel
+        +parse(text, title) Novel
     }
-
     class CommonMarkNovelParser {
-        +parse(text: str, title: str) Novel
+        +parse(text, title) Novel
     }
-
     NovelParser <|-- CommonMarkNovelParser
 ```
 
-Segmentation and parsing are now explicitly separate responsibilities.
+### Template Method (Inference)
+
+`ContractInferencer` defines the interface; `OpenAIContractInferencer`
+provides the concrete implementation. New backends (Anthropic, NLP, local)
+can be plugged in without touching the assessment layer.
+
+```mermaid
+classDiagram
+    class ContractInferencer {
+        +infer(modules, novel_title) List[ModuleContract]
+    }
+    class OpenAIContractInferencer {
+        +infer(modules, novel_title) List[ModuleContract]
+    }
+    ContractInferencer <|-- OpenAIContractInferencer
+```
+
+### Protocol (Assessment Rules)
+
+Assessment rules use a structural `Protocol` so any object implementing
+`evaluate(contract) → Finding | None` qualifies as a rule — no inheritance
+required.
+
+```mermaid
+classDiagram
+    class Rule {
+        +name: str
+        +evaluate(contract) Optional[Finding]
+    }
+    class UnspecifiedStateRule {
+        +evaluate(contract) Optional[Finding]
+    }
+    class MissingExpectedChangeRule {
+        +evaluate(contract) Optional[Finding]
+    }
+    class NoChangeRule {
+        +evaluate(contract) Optional[Finding]
+    }
+    Rule <|.. UnspecifiedStateRule
+    Rule <|.. MissingExpectedChangeRule
+    Rule <|.. NoChangeRule
+```
+
+### Dependency Injection (LLM clients)
+
+Both `OpenAIContractInferencer` and `LLMSegmenter` accept their LLM client
+via the constructor. This keeps them testable without network calls:
+
+```python
+# Production
+client = OpenAILLMClient(config=LLMClientConfig(model="gpt-4.1-mini"))
+inferencer = OpenAIContractInferencer(client=client)
+
+# Tests
+stub = StubClient(outputs=[...])
+inferencer = OpenAIContractInferencer(client=stub)
+```
+
+### Layering
+
+Layers are strictly ordered. Lower layers must not import from higher layers.
+
+```
+CLI (entry point)
+  └── Segmentation   (no imports from inference, parser, contracts)
+  └── Parser         (no imports from inference, contracts)
+  └── Inference      (imports from parser models only)
+  └── Contracts      (imports from models only)
+  └── Models         (no imports from any application layer)
+  └── Utils          (no imports from application layers)
+```
+
+`LLMSegmenter` uses a **local import** to obtain `OpenAILLMClient` at
+instantiation time, avoiding a module-level dependency on the inference layer.
 
 ---
 
-## Updated Conceptual Pipeline
-
-Replace this:
-
-```
-Markdown → parse → infer
-```
-
-With this:
-
-```
-Markdown → segment → parse → infer
-```
-
-And for CLI:
-
-| Command | Pipeline |
-|------|--------|
-| `segment` | Markdown → Segmented Markdown |
-| `parse` | Markdown → Segment → Parse → Blank Contract |
-| `infer` | Markdown → Segment → Parse → Infer → Contract (+ optional annotated Markdown) |
-| `assess` | Contract → Rules → Report |
-
----
-
-## Updated Narrative Contract Pipeline
+## Narrative Contract Pipeline
 
 ### Author-declared workflow
 
@@ -175,28 +220,54 @@ sequenceDiagram
     Segmenter->>Parser: Annotated Markdown
     Parser->>Inferencer: Parsed Modules
     Inferencer->>Author: Inferred Contract YAML
-    Author->>Assessor: Review & Assess
+    Author->>Assessor: Review and Assess
     Assessor->>Author: PASS/WARN/FAIL Report
 ```
 
 ---
 
-## Design Correction Summary
+## Source Provenance
 
-What changed structurally:
+The `parse` command embeds a `source` block in every contract YAML:
 
-| Before | Now |
-|------|----|
-Parser accepted raw prose | Parser only accepts structured Markdown |
-Segmentation was implicit | Segmentation is explicit and testable |
-Markdown validity was optional | Markdown validity is guaranteed |
-Infer operated on raw input | Infer operates on normalized structure |
-CLI was parse-first | CLI is segment-first |
-
-This makes the system *deterministic*, *composable*, and *auditable*.
-
-You now have a true compiler pipeline:
-
+```yaml
+source:
+  original_path: /path/to/novel.md
+  copied_path: /path/to/output/source.md
+  sha256: a3f2c...
+  generated_at: 2026-03-01T12:00:00+00:00
 ```
-Source → Normalization → Syntax → Semantics → Verification
-```
+
+This SHA-256 fingerprint binds the contract to the exact version of the
+source Markdown that generated it. Drift detection can be implemented by
+comparing the stored hash against a re-hash of the current file.
+
+---
+
+## Test Coverage
+
+| Area | Test files | Count |
+|------|-----------|-------|
+| Models | `tests/core/test_models.py` | 6 |
+| CLI | `tests/core/test_cli.py` | 11 |
+| Logging | `tests/core/test_logging_config.py` | 3 |
+| Parser (unit) | `tests/parser/test_commonmark_parser.py` | 7 |
+| Parser (integration) | `tests/parser/test_parser.py` | 1 |
+| Parser (abstract) | `tests/parser/test_parser_base.py` | 3 |
+| Segmentation (deterministic) | `tests/segmentation/test_segmentation_unit.py` | 5 |
+| Segmentation (invariants) | `tests/segmentation/test_segmentation_invarients.py` | 4 |
+| Segmentation (LLM stubbed) | `tests/segmentation/test_llm_segmenter.py` | 7 |
+| Contracts | `tests/contracts/test_contract.py` | 4 |
+| Contracts YAML | `tests/contracts/test_contract_yaml.py` | 1 |
+| Rules | `tests/contracts/test_rules.py` | 7 |
+| Assessor | `tests/contracts/test_assessor.py` | 5 |
+| Inference (auto) | `tests/inference/test_auto_contract.py` | 3 |
+| Inference (LLM client) | `tests/inference/test_llm_client_stubbed.py` | 3 |
+| Inference (inferencer) | `tests/inference/test_llm_inferencer.py` | 1 |
+| Prompts | `tests/inference/test_prompts.py` | 7 |
+| Types | `tests/inference/test_types.py` | 10 |
+| Fingerprinting | `tests/utils/test_source_fingerprint.py` | 8 |
+| Integration | `tests/integration/test_pipeline.py` | 1 |
+| **Total** | | **97** |
+
+All 97 tests pass against the current codebase.

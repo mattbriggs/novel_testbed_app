@@ -56,16 +56,17 @@ nav:
   - How-to:
     - Use the tool: use-the-testbed-app.md
     - Manually segment your novel: how-to-manually-segment.md
-    - Took Walkthrough: tool-walkthrough.md
+    - Tool Walkthrough: tool-walkthrough.md
   - Architecture:
       - Software Design: software-design.md
       - Class Diagram: diagram-class.md
       - Package Diagram: diagram-package.md
   - API Reference:
-    - API: api.md
-    - Core: api-core.md
+    - Overview: api.md
+    - Core Models & CLI: api-core.md
     - Inference: api-inference.md
     - Segmentation: api-segmentation.md
-    - Parser: api-parser.md 
-    - Contracts: api-contracts.md
+    - Parser: api-parser.md
+    - Contracts & Assessment: api-contracts.md
     - Utilities: api-utils.md
+  - Roadmap: roadmap.md

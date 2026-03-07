@@ -134,18 +134,24 @@ def assess_contract(
     return reports
 
 
-def report_to_json(reports):
+def report_to_json(reports: List[ModuleReport]) -> str:
     """
-    Serialize assessment reports to JSON.
+    Serialize assessment reports to a JSON string.
 
-    All Findings are converted to plain dictionaries so the output
-    is fully JSON serializable.
+    All :class:`Finding` objects are converted to plain dictionaries so the
+    output is fully JSON-serializable and suitable for writing to a file or
+    streaming to a consumer.
+
+    :param reports: List of :class:`ModuleReport` objects from
+                    :func:`assess_contract`.
+    :return: Indented JSON string terminated by a trailing newline.
     """
-    def convert(report):
-        return {
+    serialized = [
+        {
             "module_id": report.module_id,
             "severity": report.severity,
             "findings": [asdict(f) for f in report.findings],
         }
-
-    return json.dumps([convert(r) for r in reports], indent=2) + "\n"
+        for report in reports
+    ]
+    return json.dumps(serialized, indent=2) + "\n"

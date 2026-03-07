@@ -68,7 +68,8 @@ def _cmd_segment(args: argparse.Namespace) -> int:
 
     if args.llm:
         _require_openai_key()
-        segmenter = LLMSegmenter()
+        llm_client = OpenAILLMClient(config=LLMClientConfig())
+        segmenter = LLMSegmenter(client=llm_client)
         logger.info("Using LLM-backed segmenter.")
     else:
         segmenter = ModuleSegmenter()

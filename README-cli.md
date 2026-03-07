@@ -4,7 +4,7 @@ The Novel Testbed treats your novel as a system of transformations.
 Each scene must move the reader from one state to another. If nothing changes,
 the scene is structurally inert.
 
-You write prose.  
+You write prose.
 The CLI turns prose into structure, intent, and verification.
 
 Your novel is compiled through explicit stages:
@@ -13,7 +13,7 @@ Your novel is compiled through explicit stages:
 Markdown → Segment → Parse → Infer → Assess
 ```
 
-This is not a parser.  
+This is not a parser.
 It is a narrative compiler.
 
 
@@ -23,14 +23,14 @@ It is a narrative compiler.
 The Novel Testbed CLI provides four commands:
 
 | Command   | Purpose |
-|----------|--------|
+|-----------|---------|
 | `segment` | Convert raw prose into structured Markdown |
 | `parse`   | Build a blank contract YAML from structured Markdown |
 | `infer`   | Populate a contract using an LLM |
 | `assess`  | Validate a contract against narrative rules |
 
-Each command has one responsibility.  
-No command performs another’s work.
+Each command has one responsibility.
+No command performs another's work.
 
 
 
@@ -54,8 +54,8 @@ python3 -m novel_testbed.cli --help
 
 There are two kinds of Markdown:
 
-1. **Raw prose Markdown** → must go through `segment`
-2. **Annotated Markdown** → used by `parse` and `infer`
+1. **Raw prose Markdown** — must go through `segment`
+2. **Annotated Markdown** — used by `parse` and `infer`
 
 Canonical structure:
 
@@ -74,7 +74,7 @@ Text...
 
 Everything between two `##` headings is one module.
 
-Structure is not decoration.  
+Structure is not decoration.
 It is the grammar of your book.
 
 
@@ -87,16 +87,22 @@ novel-testbed segment novel.md -o annotated.md
 
 Purpose:
 - Insert chapter headings if missing
-- Insert at least one module
+- Insert at least one module boundary
 - Normalize structure
+- Guarantee valid input for the parser
 
 Output is always annotated Markdown.
 
-This step is mechanical and deterministic unless `--llm` is used.
+This step is deterministic by default.
+
+### LLM-backed segmentation
 
 ```bash
 novel-testbed segment novel.md -o annotated.md --llm
 ```
+
+The `--llm` flag uses an OpenAI model to infer semantically correct boundaries.
+Requires `OPENAI_API_KEY`.
 
 
 
@@ -109,13 +115,17 @@ novel-testbed parse annotated.md -o contract.yaml
 Produces a blank narrative contract:
 
 ```yaml
+source:
+  original_path: /path/to/annotated.md
+  sha256: abc123...
+  generated_at: 2026-03-01T12:00:00+00:00
 modules:
   - module_id: M001
     chapter: The Sea
     module_title: Scene 1
     module_type: scene
     anchors:
-      start: I stood on the deck…
+      start: I stood on the deck...
       end: The horizon went black.
     pre_state: {}
     post_state: {}
@@ -124,6 +134,9 @@ modules:
 
 This is your **specification file**.
 Nothing is evaluated yet. You are declaring intent.
+
+The `source` block embeds a SHA-256 fingerprint so the contract can be
+verified against the exact Markdown that produced it.
 
 
 
@@ -146,25 +159,27 @@ Important:
 
 Each module is filled with:
 
-- pre_state
-- post_state
-- expected_changes
-- fantasy alignment
-- threat / agency levels
+- `pre_state` (chained from prior module's `post_state`)
+- `post_state` (inferred from the module text)
+- `expected_changes`
+- `fantasy_id`
+- `threat_level` / `agency_level`
 
 This step converts structure into meaning.
 
+### Select a model
 
-
-## OpenAI API Key (for `infer`)
-
-The `infer` command requires an OpenAI API key:
-
-```
-OPENAI_API_KEY
+```bash
+novel-testbed infer annotated.md -o contract.yaml --model gpt-4.1
 ```
 
-Set it:
+Default model: `gpt-4.1-mini`
+
+
+
+## OpenAI API Key (for `infer` and `segment --llm`)
+
+Both LLM-backed commands require an OpenAI API key:
 
 macOS / Linux:
 ```bash
@@ -182,13 +197,13 @@ Verify:
 echo $OPENAI_API_KEY
 ```
 
-If the key is missing, inference refuses to run.
+If the key is missing, these commands refuse to run.
 
 
 
-## 4. Declare reader state and intent
+## 4. Declare reader state and intent (manual workflow)
 
-Each module defines:
+After `parse`, fill the contract manually:
 
 ```yaml
 pre_state:
@@ -249,20 +264,20 @@ Interpretation:
 
 ```python
 ReaderState:
-  genre: str
-  power_balance: str
-  emotional_tone: str
-  dominant_fantasy_id: str
-  threat_level: float   # 0..1
-  agency_level: float   # 0..1
+  genre: str | None
+  power_balance: str | None
+  emotional_tone: str | None
+  dominant_fantasy_id: str | None
+  threat_level: float | None   # 0..1
+  agency_level: float | None   # 0..1
 ```
 
-Extend freely:
+Extend freely in future versions:
 
-- suspicion_level  
-- captivity_pressure  
-- moral_distortion  
-- trust_erosion  
+- `suspicion_level`
+- `captivity_pressure`
+- `moral_distortion`
+- `trust_erosion`
 
 The engine only cares that values move.
 
@@ -276,21 +291,23 @@ Rules live in:
 novel_testbed/contracts/rules.py
 ```
 
-Each rule returns:
+Each rule returns a Finding with severity:
 
-- PASS  
-- WARN  
-- FAIL  
+- `PASS` — no violation
+- `WARN` — structural concern
+- `FAIL` — structural violation
 
 Current rules:
 
-| Rule | Result |
-|------|------|
-| Missing reader state | WARN |
-| Missing expected changes | WARN |
-| Declared change but no state difference | FAIL |
+| Rule | Trigger | Severity |
+|------|---------|---------|
+| `unspecified_state` | Neither `pre_state` nor `post_state` has any values | WARN |
+| `missing_expected_change` | `expected_changes` is empty | WARN |
+| `no_change` | Changes declared but state is identical or unspecified | FAIL |
 
-This is not a style checker.  
+Custom rule sets can be injected via `assess_contract(contracts, rules=[...])`.
+
+This is not a style checker.
 It is a **structural integrity checker** for narrative movement.
 
 
@@ -300,7 +317,7 @@ It is a **structural integrity checker** for narrative movement.
 Enable debug logging:
 
 ```bash
-novel-testbed --log-level DEBUG assess contract.yaml
+novel-testbed --log-level DEBUG assess contract.yaml -o report.json
 ```
 
 You will see:
@@ -308,4 +325,3 @@ You will see:
 - which modules fired which rules
 - why failures occurred
 - where structure or intent collapsed
-```

@@ -3,11 +3,13 @@ Tests for the Novel Testbed CLI.
 
 These tests verify that:
 
-- Argument parsing works.
-- The `segment` command writes annotated Markdown.
-- The `parse` command writes a blank YAML contract.
-- The `infer` command consumes annotated Markdown and writes a populated contract YAML.
-- The `assess` command writes a JSON report.
+- Argument parsing works correctly for all four subcommands.
+- ``_require_openai_key`` raises ``SystemExit`` when the key is absent.
+- The ``segment`` command writes annotated Markdown.
+- The ``parse`` command writes a blank YAML contract.
+- The ``infer`` command consumes annotated Markdown and writes a populated contract YAML.
+- The ``assess`` command writes a JSON report.
+- The ``--llm`` flag for segment invokes ``LLMSegmenter``.
 
 All LLM interaction is mocked. No network calls occur. No real API keys are used.
 """
@@ -240,3 +242,113 @@ def test_cli_assess_command(tmp_path: Path):
     assert isinstance(data, list)
     assert len(data) == 1
     assert "severity" in data[0]
+
+
+# ---------------------------------------------------------------------------
+# _require_openai_key
+# ---------------------------------------------------------------------------
+
+def test_require_openai_key_raises_when_missing(monkeypatch: pytest.MonkeyPatch):
+    """
+    _require_openai_key must raise SystemExit when OPENAI_API_KEY is not set.
+    """
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli._require_openai_key()
+
+    assert exc_info.value.code != 0 or isinstance(exc_info.value.code, str)
+
+
+def test_require_openai_key_passes_when_set(monkeypatch: pytest.MonkeyPatch):
+    """
+    _require_openai_key must not raise when OPENAI_API_KEY is present.
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-fake")
+    cli._require_openai_key()  # Should not raise
+
+
+# ---------------------------------------------------------------------------
+# build_arg_parser
+# ---------------------------------------------------------------------------
+
+def test_build_arg_parser_returns_parser():
+    """
+    build_arg_parser must return an ArgumentParser with prog=novel-testbed.
+    """
+    parser = cli.build_arg_parser()
+    assert parser.prog == "novel-testbed"
+
+
+def test_build_arg_parser_segment_subcommand():
+    """
+    The segment subcommand must accept input, -o, --title, and --llm.
+    """
+    parser = cli.build_arg_parser()
+    args = parser.parse_args(["segment", "novel.md", "-o", "out.md", "--title", "My Novel"])
+
+    assert args.cmd == "segment"
+    assert args.input == "novel.md"
+    assert args.output == "out.md"
+    assert args.title == "My Novel"
+    assert args.llm is False
+
+
+def test_build_arg_parser_segment_llm_flag():
+    """
+    The --llm flag must default to False and be set to True when supplied.
+    """
+    parser = cli.build_arg_parser()
+    args = parser.parse_args(["segment", "novel.md", "-o", "out.md", "--llm"])
+
+    assert args.llm is True
+
+
+def test_build_arg_parser_infer_default_model():
+    """
+    The infer subcommand must use gpt-4.1-mini as the default model.
+    """
+    parser = cli.build_arg_parser()
+    args = parser.parse_args(["infer", "annotated.md", "-o", "contract.yaml"])
+
+    assert args.model == "gpt-4.1-mini"
+
+
+# ---------------------------------------------------------------------------
+# segment --llm flag (stubbed)
+# ---------------------------------------------------------------------------
+
+def test_cli_segment_llm_flag_uses_llm_segmenter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """
+    When --llm is passed, segment must instantiate LLMSegmenter with a client.
+
+    Both OpenAILLMClient construction and LLMSegmenter are stubbed.
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-fake")
+    novel_path = make_sample_markdown(tmp_path)
+    out_path = tmp_path / "annotated.md"
+
+    annotated_text = "# Test Novel\n\n## Scene 1\nShe stepped onto the sand.\n"
+
+    class DummyLLMClient:
+        def complete(self, prompt: str) -> str:
+            return annotated_text.strip()
+
+    class DummyLLMSegmenter:
+        def __init__(self, client):
+            self.client = client
+
+        def segment_markdown(self, text: str, title: str) -> str:
+            return annotated_text
+
+    monkeypatch.setattr(cli, "OpenAILLMClient", lambda config=None: DummyLLMClient())
+    monkeypatch.setattr(cli, "LLMSegmenter", lambda client: DummyLLMSegmenter(client=client))
+
+    code = cli.main(["segment", str(novel_path), "-o", str(out_path), "--llm"])
+
+    assert code == 0
+    assert out_path.exists()
+    content = out_path.read_text(encoding="utf-8")
+    assert "# Test Novel" in content

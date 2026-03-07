@@ -130,12 +130,18 @@ class NoChangeRule:
 
     name = "no_change"
 
-    def evaluate(self, c: ModuleContract) -> Optional[Finding]:
-        if not c.expected_changes:
+    def evaluate(self, contract: ModuleContract) -> Optional[Finding]:
+        """
+        Evaluate whether declared changes are backed by measurable state difference.
+
+        :param contract: ModuleContract to evaluate.
+        :return: Finding if rule is violated, otherwise None.
+        """
+        if not contract.expected_changes:
             return None
 
         # Promised change but gave no measurable state
-        if not _state_is_specified(c):
+        if not _state_is_specified(contract):
             return Finding(
                 self.name,
                 "FAIL",
@@ -143,7 +149,7 @@ class NoChangeRule:
             )
 
         # Promised change but state did not change
-        if c.pre_state == c.post_state:
+        if contract.pre_state == contract.post_state:
             return Finding(
                 self.name,
                 "FAIL",

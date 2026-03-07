@@ -4,15 +4,22 @@ Markdown segmentation utilities.
 This module is responsible for discovering and inserting structural
 boundaries into raw prose Markdown so that downstream parsers can operate.
 
-This is the first phase of the narrative compiler:
+This is the first phase of the narrative compiler::
 
     segment → parse → infer → assess
 
-The base ModuleSegmenter is deterministic and conservative. It guarantees:
+The base :class:`ModuleSegmenter` is deterministic and conservative.
+It guarantees:
+
 - A top-level chapter header
 - At least one module header
 - Correct chapter → module ordering
 - Idempotency when input is already well-formed
+
+:class:`LLMSegmenter` extends this with optional LLM-based semantic
+segmentation. It depends on
+:class:`~novel_testbed.inference.llm_client.OpenAILLMClient` for the API
+call but does **not** depend on the inference layer's contract logic.
 """
 
 from __future__ import annotations
@@ -20,9 +27,6 @@ from __future__ import annotations
 import logging
 import re
 from typing import Optional
-
-from novel_testbed.inference.llm_client import OpenAILLMClient
-from novel_testbed.inference.llm_inferencer import OpenAIContractInferencer
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +37,8 @@ class ModuleSegmenter:
 
     Guarantees a structurally valid document:
 
-    - One top-level chapter heading: `# Title`
-    - At least one module heading: `## Scene ...`
+    - One top-level chapter heading: ``# Title``
+    - At least one module heading: ``## Scene ...``
     - Chapter must appear before any module
     - Idempotent for already-correct Markdown
     """
@@ -47,13 +51,14 @@ class ModuleSegmenter:
         Segment raw Markdown into structurally annotated Markdown.
 
         Structural invariants enforced:
+
         - Chapter must come before any module
         - At least one chapter exists
         - At least one module exists
 
         :param text: Raw or partially annotated Markdown.
         :param title: Novel title used for synthetic chapter heading.
-        :return: Valid annotated Markdown.
+        :return: Valid annotated Markdown ending with a trailing newline.
         """
         logger.debug("Starting deterministic segmentation for '%s'", title)
 
@@ -79,11 +84,9 @@ class ModuleSegmenter:
 
         logger.info("Markdown is missing or has invalid structure; rebuilding.")
 
-        body_lines = []
-
-        for line in lines:
-            if not line.strip().startswith("#"):
-                body_lines.append(line)
+        body_lines = [
+            line for line in lines if not line.strip().startswith("#")
+        ]
 
         output = []
 
@@ -112,33 +115,56 @@ class LLMSegmenter(ModuleSegmenter):
     """
     LLM-powered semantic segmenter.
 
-    Uses an OpenAI-backed inferencer to insert:
+    Uses an object with a ``complete(prompt: str) -> str`` interface —
+    typically :class:`~novel_testbed.inference.llm_client.OpenAILLMClient` —
+    to insert:
+
     - Chapter titles
     - Scene boundaries
     - Exposition blocks
     - Transition modules
 
-    This replaces naive segmentation with semantic awareness.
+    This replaces naive segmentation with semantic awareness. The LLM returns
+    plain annotated Markdown (not JSON), so the ``complete`` method is used
+    rather than ``infer_json``.
+
+    If no client is supplied, a default
+    :class:`~novel_testbed.inference.llm_client.OpenAILLMClient` is constructed
+    automatically (requires ``OPENAI_API_KEY`` in the environment).
     """
 
-    def __init__(
-        self,
-        inferencer: Optional[OpenAIContractInferencer] = None,
-    ) -> None:
-        if inferencer is None:
-            logger.debug("Creating default OpenAI inferencer for LLMSegmenter.")
-            client = OpenAILLMClient()
-            inferencer = OpenAIContractInferencer(client=client)
+    def __init__(self, client: Optional[object] = None) -> None:
+        """
+        Initialize the LLM segmenter.
 
-        self.inferencer = inferencer
+        :param client: An object with a ``complete(prompt: str) -> str`` method.
+                       If ``None``, a default
+                       :class:`~novel_testbed.inference.llm_client.OpenAILLMClient`
+                       is created automatically.
+        :raises RuntimeError: If ``client`` is ``None`` and ``OPENAI_API_KEY``
+                              is not set in the environment.
+        """
+        if client is None:
+            logger.debug("Creating default OpenAILLMClient for LLMSegmenter.")
+            # Local import keeps the segmentation layer independent of the
+            # inference layer at module load time.
+            from novel_testbed.inference.llm_client import OpenAILLMClient
+            client = OpenAILLMClient()
+
+        self._client = client
 
     def segment_markdown(self, text: str, title: str) -> str:
         """
         Use an LLM to infer module boundaries and return fully annotated Markdown.
 
+        Sends a structured prompt requesting ``# Chapter`` and ``## Scene /
+        Exposition / Transition`` headers be inserted at semantically appropriate
+        locations.
+
         :param text: Raw Markdown prose.
         :param title: Novel title.
-        :return: Structurally valid annotated Markdown.
+        :return: Structurally valid annotated Markdown ending with a trailing
+                 newline.
         """
         logger.info("Starting LLM-based segmentation for '%s'", title)
 
@@ -159,7 +185,7 @@ class LLMSegmenter(ModuleSegmenter):
 
         logger.debug("Sending segmentation prompt to LLM (%d chars).", len(prompt))
 
-        response = self.inferencer.client.complete(prompt)
+        response = self._client.complete(prompt)
 
         segmented = response.strip() + "\n"
 

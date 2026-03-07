@@ -1,12 +1,15 @@
 # Documentation (MkDocs)
 
-This project uses **MkDocs** with Mermaid and mkdocstrings.
+This project uses **MkDocs** with the Material theme, Mermaid diagrams,
+and `mkdocstrings` for auto-generated API reference from Python docstrings.
 
 Docs are built from:
 
-- `docs/*.md`
-- Python docstrings (Sphinx style)
-- Mermaid.js diagrams
+- `docs/*.md` — hand-written guides and architecture pages
+- Python docstrings (Sphinx-compatible `:param:` / `:return:` style)
+- Mermaid.js diagrams embedded in Markdown
+
+
 
 ## Install documentation dependencies
 
@@ -16,7 +19,13 @@ Use the project requirements:
 pip install -r requirements.txt
 ```
 
-If you maintain separate optional doc dependencies later, keep them aligned here.
+Or install the docs extras directly:
+
+```bash
+pip install -e ".[docs]"
+```
+
+
 
 ## Serve docs locally
 
@@ -30,7 +39,9 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-Changes to documentation files or Python code will live-reload.
+Changes to documentation files or Python docstrings will live-reload.
+
+
 
 ## Build static site
 
@@ -46,36 +57,43 @@ site/
 
 This directory can be deployed to GitHub Pages or any static web host.
 
-## Generate the class diagram of the software object model
 
-Because drawing UML by hand is cosplay.
 
-We auto-generate it from code so the diagram cannot lie.
+## Documentation structure
+
+```
+docs/
+├── index.md                    # Home page and conceptual overview
+├── software-design.md          # Architecture, patterns, design rationale
+├── use-the-testbed-app.md      # How-to guide for authors
+├── tool-walkthrough.md         # Step-by-step CLI walkthrough
+├── how-to-manually-segment.md  # Guide for hand-annotating Markdown
+├── diagram-class.md            # Auto-generated class diagram
+├── diagram-package.md          # Auto-generated package diagram
+├── api.md                      # API reference index
+├── api-core.md                 # Core models and CLI
+├── api-inference.md            # Inference layer
+├── api-segmentation.md         # Segmentation layer
+├── api-parser.md               # Parser layer
+├── api-contracts.md            # Contracts and assessment
+└── api-utils.md                # Utility functions
+```
+
+Navigation is configured in `mkdocs.yml`.
+
+
+
+## Generate UML diagrams
+
+Diagrams are auto-generated from code so they cannot drift.
 
 ### 1. Install dependencies
 
-Add to `requirements.txt`:
-
-```
-pylint>=3.0
-```
-
-You also need **Graphviz**, which pyreverse uses to render diagrams.
-
-macOS:
-
 ```bash
-brew install graphviz
+pip install pylint
+brew install graphviz        # macOS
+sudo apt install graphviz   # Ubuntu
 ```
-
-Ubuntu:
-
-```bash
-sudo apt install graphviz
-```
-
-Windows:
-Install from https://graphviz.org and ensure `dot` is on PATH.
 
 Verify:
 
@@ -99,7 +117,6 @@ Produces:
 ### 3. Store diagrams in the docs tree
 
 ```bash
-mkdir -p docs/diagrams
 mv classes_novel_testbed.svg docs/media/classes_novel_testbed.svg
 mv packages_novel_testbed.svg docs/media/packages_novel_testbed.svg
 ```
@@ -107,32 +124,35 @@ mv packages_novel_testbed.svg docs/media/packages_novel_testbed.svg
 ### 4. Reference diagrams in docs
 
 ```markdown
-## Class Diagram
-
-This diagram is mechanically derived from the codebase.
-
 ![Class Diagram](media/classes_novel_testbed.svg)
 ```
 
-Optional:
+Regenerate after every major refactor.
+If the diagram looks wrong, the code is wrong.
 
-```markdown
-## Package Diagram
 
-![Package Diagram](media/packages_novel_testbed.svg)
+
+## Docstring standard
+
+All public modules and methods use Sphinx-compatible format:
+
+```python
+def my_function(arg: str) -> int:
+    """
+    One-line summary.
+
+    Extended description if needed.
+
+    :param arg: Description of the argument.
+    :return: Description of the return value.
+    :raises ValueError: When the input is invalid.
+    """
 ```
 
-### 5. Why this matters
+`mkdocstrings` reads these and renders them in the API reference.
 
-These diagrams are not decorative.
 
-They are:
 
-- mechanically derived  
-- impossible to drift  
-- structurally authoritative  
+## Roadmap
 
-If the diagram looks wrong, the code is wrong.  
-Regenerate after every major refactor.
-
-That is the contract.
+The future development roadmap is tracked in [Roadmap.md](Roadmap.md).
