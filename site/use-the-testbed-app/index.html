@@ -1,0 +1,1639 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A narrative compiler and test harness for fiction modules">
+      
+      
+        <meta name="author" content="Matt Briggs">
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../how-to-manually-segment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Use the tool - Novel Testbed</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#use-the-testbed-app" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Novel Testbed" class="md-header__button md-logo" aria-label="Novel Testbed" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Novel Testbed
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Use the tool
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-hidden="true"  type="radio" name="__palette" id="__palette_1">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  How-to
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../software-design/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../roadmap/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Roadmap
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Novel Testbed" class="md-nav__button md-logo" aria-label="Novel Testbed" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Novel Testbed
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use the tool
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use the tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-tool-really-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this tool really does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-first-step-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The first step: segmentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reader-response-measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reader Response measurement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-a-writer-uses-the-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a writer uses the tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-typical-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A typical workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A typical workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-write-your-novel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Write your novel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-segment-your-novel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Segment your novel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-parse-structure-into-a-blank-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Parse structure into a blank contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-infer-reader-response-semantic-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Infer reader response (semantic pass)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-read-the-contract-like-margin-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Read the contract like margin notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-assess-your-book" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Assess your book
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#think-of-this-as-choreography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Think of this as choreography
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to-manually-segment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manually segment your novel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tool-walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tool Walkthrough
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../software-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Software Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagram-class/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class Diagram
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagram-package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Diagram
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Models & CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-segmentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts & Assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-tool-really-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this tool really does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-first-step-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The first step: segmentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reader-response-measurement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reader Response measurement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-a-writer-uses-the-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How a writer uses the tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-typical-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A typical workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A typical workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-write-your-novel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Write your novel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-segment-your-novel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Segment your novel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-parse-structure-into-a-blank-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Parse structure into a blank contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-infer-reader-response-semantic-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Infer reader response (semantic pass)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-read-the-contract-like-margin-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Read the contract like margin notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-assess-your-book" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Assess your book
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#think-of-this-as-choreography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Think of this as choreography
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="use-the-testbed-app">Use the Testbed App<a class="headerlink" href="#use-the-testbed-app" title="Permanent link">&para;</a></h1>
+<p>Writers are allergic to words like <em>metrics</em>, <em>validation</em>, and <em>contract</em> for a reason. They sound like accounting. This tool is not here to turn your novel into a spreadsheet. It is here to give you something writers almost never get: a way to see whether a scene actually <em>moves</em> the reader.</p>
+<p>Think of this less as unit testing and more as <strong>Reader Response mapping</strong>.</p>
+<p>You are not measuring quality.<br />
+You are measuring <em>effect</em>.</p>
+<p>Did the reader’s sense of danger increase?<br />
+Did power shift?<br />
+Did trust erode?<br />
+Did intimacy grow?<br />
+Did the genre tilt?<br />
+Did something destabilize?</p>
+<p>That is what this system tracks.</p>
+<p>Not beauty.<br />
+Not voice.<br />
+Not talent.<br />
+Change.</p>
+<h2 id="what-this-tool-really-does">What this tool really does<a class="headerlink" href="#what-this-tool-really-does" title="Permanent link">&para;</a></h2>
+<p>Every scene or block of exposition in your novel is treated like a moment of transformation:</p>
+<div class="highlight"><pre><span></span><code>Reader Before → Reader After
+</code></pre></div>
+<p>If a scene does not change anything in the reader, then it is decorative. It might be lovely. It might be lyrical. But structurally, it is inert.</p>
+<p>The testbed exists to make that visible.</p>
+<h2 id="the-pipeline">The pipeline<a class="headerlink" href="#the-pipeline" title="Permanent link">&para;</a></h2>
+<p>The system is now strictly staged:</p>
+<div class="highlight"><pre><span></span><code>Markdown → Segment → Parse → Infer → Assess
+</code></pre></div>
+<p>Each step has one responsibility:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Segment</td>
+<td>Create structure</td>
+</tr>
+<tr>
+<td>Parse</td>
+<td>Read structure</td>
+</tr>
+<tr>
+<td>Infer</td>
+<td>Interpret meaning</td>
+</tr>
+<tr>
+<td>Assess</td>
+<td>Validate change</td>
+</tr>
+</tbody>
+</table>
+<p>No command performs another stage’s work.<br />
+No stage hides inside another.</p>
+<h2 id="the-first-step-segmentation">The first step: segmentation<a class="headerlink" href="#the-first-step-segmentation" title="Permanent link">&para;</a></h2>
+<p>Before anything else happens, your text must be <strong>segmented</strong>.</p>
+<p>Segmentation means:</p>
+<ul>
+<li>Raw prose becomes structured Markdown</li>
+<li>Chapters (<code>#</code>) are explicit</li>
+<li>Modules (<code>## Scene</code>, <code>## Exposition</code>, <code>## Transition</code>) are explicit</li>
+<li>The book becomes mechanically parseable</li>
+</ul>
+<p>Run it:</p>
+<div class="highlight"><pre><span></span><code>novel-testbed<span class="w"> </span>segment<span class="w"> </span>novel.md<span class="w"> </span>-o<span class="w"> </span>annotated.md
+</code></pre></div>
+<p>This produces a version of your book with all structural joints visible.</p>
+<p>You should open this file and read it.<br />
+This is your narrative skeleton.</p>
+<p>If segmentation is wrong, everything downstream is unreliable.</p>
+<h2 id="reader-response-measurement">Reader Response measurement<a class="headerlink" href="#reader-response-measurement" title="Permanent link">&para;</a></h2>
+<p>For writers, read this as:</p>
+<blockquote>
+<p><strong>Reader Response Pattern</strong></p>
+</blockquote>
+<p>A Reader Response Pattern is a recurring emotional or psychological effect:</p>
+<ul>
+<li>“Truth is exposed.”</li>
+<li>“Someone gains power.”</li>
+<li>“Safety is lost.”</li>
+<li>“Agency collapses.”</li>
+<li>“Danger becomes unavoidable.”</li>
+</ul>
+<p>These are not tropes.<br />
+They are emotional consequences.</p>
+<p>Your scenes activate these whether you intend them to or not.<br />
+The system simply asks you to name them.</p>
+<h2 id="how-a-writer-uses-the-tool">How a writer uses the tool<a class="headerlink" href="#how-a-writer-uses-the-tool" title="Permanent link">&para;</a></h2>
+<p>You do not need to think like a programmer.<br />
+You only need to answer three questions per scene:</p>
+<ol>
+<li>What does the reader feel or believe before?</li>
+<li>What does the reader feel or believe after?</li>
+<li>What changed?</li>
+</ol>
+<p>Everything else is scaffolding.</p>
+<h2 id="a-typical-workflow">A typical workflow<a class="headerlink" href="#a-typical-workflow" title="Permanent link">&para;</a></h2>
+<h3 id="1-write-your-novel">1. Write your novel<a class="headerlink" href="#1-write-your-novel" title="Permanent link">&para;</a></h3>
+<p>Raw prose is fine:</p>
+<div class="highlight"><pre><span></span><code>She stepped onto the sand. The wind was sharp.
+</code></pre></div>
+<p>Or structured Markdown:</p>
+<div class="highlight"><pre><span></span><code><span class="gh"># Chapter One</span>
+
+<span class="gu">## Scene Arrival</span>
+She stepped onto the sand.
+</code></pre></div>
+<h3 id="2-segment-your-novel">2. Segment your novel<a class="headerlink" href="#2-segment-your-novel" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>novel-testbed<span class="w"> </span>segment<span class="w"> </span>novel.md<span class="w"> </span>-o<span class="w"> </span>annotated.md
+</code></pre></div>
+<p>Now you have explicit structure.<br />
+Fix chapters. Rename scenes. Insert exposition.<br />
+This is mechanical, not artistic.</p>
+<h3 id="3-parse-structure-into-a-blank-contract">3. Parse structure into a blank contract<a class="headerlink" href="#3-parse-structure-into-a-blank-contract" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>novel-testbed<span class="w"> </span>parse<span class="w"> </span>annotated.md<span class="w"> </span>-o<span class="w"> </span>contract.yaml
+</code></pre></div>
+<p>This creates your narrative worksheet.</p>
+<p>Nothing is judged yet.<br />
+You are declaring intent.</p>
+<h3 id="4-infer-reader-response-semantic-pass">4. Infer reader response (semantic pass)<a class="headerlink" href="#4-infer-reader-response-semantic-pass" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>novel-testbed<span class="w"> </span>infer<span class="w"> </span>annotated.md<span class="w"> </span>-o<span class="w"> </span>contract.yaml
+</code></pre></div>
+<p>Important:
+- <code>infer</code> does <strong>not</strong> segment
+- <code>infer</code> expects already-annotated Markdown
+- Structure must exist before inference</p>
+<p>What happens here:</p>
+<ol>
+<li>The structure is parsed</li>
+<li>An LLM infers:</li>
+<li>pre_state</li>
+<li>post_state</li>
+<li>expected_changes</li>
+<li>A populated contract is written</li>
+</ol>
+<p>The LLM is acting like a tireless first reader, not a critic.</p>
+<h3 id="5-read-the-contract-like-margin-notes">5. Read the contract like margin notes<a class="headerlink" href="#5-read-the-contract-like-margin-notes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">pre_state</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">emotional_tone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">calm</span>
+<span class="w">  </span><span class="nt">threat_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">agency_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.9</span>
+
+<span class="nt">post_state</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">emotional_tone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unease</span>
+<span class="w">  </span><span class="nt">threat_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span>
+<span class="w">  </span><span class="nt">agency_level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.85</span>
+
+<span class="nt">expected_changes</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;Threat</span><span class="nv"> </span><span class="s">increases&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;Control</span><span class="nv"> </span><span class="s">becomes</span><span class="nv"> </span><span class="s">fragile&quot;</span>
+</code></pre></div>
+<p>This is a question, not a verdict:</p>
+<blockquote>
+<p>“Is this true?”</p>
+</blockquote>
+<h3 id="6-assess-your-book">6. Assess your book<a class="headerlink" href="#6-assess-your-book" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>novel-testbed<span class="w"> </span>assess<span class="w"> </span>contract.yaml<span class="w"> </span>-o<span class="w"> </span>report.json
+</code></pre></div>
+<p>A failure usually means:</p>
+<blockquote>
+<p>“You promised movement, but your own data shows none.”</p>
+</blockquote>
+<p>That is not criticism.<br />
+That is precision.</p>
+<h2 id="what-this-is-not">What this is not<a class="headerlink" href="#what-this-is-not" title="Permanent link">&para;</a></h2>
+<p>This is not:</p>
+<ul>
+<li>a style checker  </li>
+<li>a grammar checker  </li>
+<li>a literary judge  </li>
+<li>a replacement for intuition  </li>
+</ul>
+<p>It does not know if your writing is “good.”<br />
+It knows whether your writing <strong>moves the reader state</strong>.</p>
+<h2 id="why-this-works">Why this works<a class="headerlink" href="#why-this-works" title="Permanent link">&para;</a></h2>
+<p>Writers trust:</p>
+<ul>
+<li>instinct  </li>
+<li>rhythm  </li>
+<li>resonance  </li>
+</ul>
+<p>This system adds:</p>
+<ul>
+<li>consequence  </li>
+<li>escalation  </li>
+<li>pressure  </li>
+<li>transformation  </li>
+</ul>
+<p>It does not replace intuition.<br />
+It makes intuition visible and testable.</p>
+<h2 id="think-of-this-as-choreography">Think of this as choreography<a class="headerlink" href="#think-of-this-as-choreography" title="Permanent link">&para;</a></h2>
+<p>You are not measuring art.<br />
+You are measuring motion.</p>
+<p>A dancer does not ask:</p>
+<blockquote>
+<p>“Was that beautiful?”</p>
+</blockquote>
+<p>First they ask:</p>
+<blockquote>
+<p>“Did I move where I intended?”</p>
+</blockquote>
+<p>This tool asks that question of your story.</p>
+<p>Everything else remains yours.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "toc.follow", "navigation.top", "search.highlight", "search.suggest", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
